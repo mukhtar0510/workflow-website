@@ -8,7 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <link rel="icon" type="image/png" href="fav.png">
+
+
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -137,9 +139,9 @@
                 <div class="flex gap-1">
                     <input type="text" id="quickTaskTitle" placeholder="Initialize objective..." class="text-[10px] rounded-md px-2 py-1 flex-1">
                     <select id="quickTaskStage" class="text-[10px] rounded-md px-1 text-gray-300 w-24">
-                        <option value="backlog" id="opt-col1">📋 Column 1</option>
-                        <option value="inprogress" id="opt-col2">⚙️ Column 2</option>
-                        <option value="done" id="opt-col3">✅ Column 3</option>
+                        <option value="backlog" id="opt-col1">📋 Backlog</option>
+                        <option value="inprogress" id="opt-col2">⚙️ Pending</option>
+                        <option value="done" id="opt-col3">✅ Completed</option>
                     </select>
                 </div>
                 <div class="flex gap-1">
@@ -207,7 +209,7 @@
 
         // Base Arrays Mapped
         let tasks = { backlog: [], inprogress: [], done: [] };
-        let columnNames = { backlog: "📋 Column 1", inprogress: "⚙️ Column 2", done: "✅ Column 3" };
+        let columnNames = { backlog: "📋 Backlog", inprogress: "⚙️ Pending", done: "✅ Completed" };
         let reminders = []; let timers = []; let events = [];
         
         let hardware = [

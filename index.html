@@ -8,19 +8,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="icon" type="image/png" href="fav.png">
+    
     <style>
-        * { box-sizing: border-box; }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #02040A;
-            background-image: radial-gradient(at 0% 0%, rgba(0, 163, 255, 0.14) 0, transparent 50%),
-                              radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.09) 0, transparent 50%);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(0, 163, 255, 0.14) 0, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.09) 0, transparent 50%);
         }
         .glass-panel {
             background: rgba(8, 12, 24, 0.75);
             backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(0, 163, 255, 0.12);
-            transition: all 0.25s ease;
+            box-shadow: 0 12px 36px -12px rgba(0, 0, 0, 0.8);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-panel:hover, .glass-panel:focus-within {
+            border-color: rgba(0, 163, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 163, 255, 0.1);
         }
         .task-card {
             background: rgba(0, 0, 0, 0.5);
@@ -34,82 +42,23 @@
         .task-completed {
             border-left-color: #10B981 !important;
             opacity: 0.6;
-            text-decoration: line-through;
         }
+        .timer-active { border-left-color: #10B981; animation: pulse-border 2s infinite; }
+        @keyframes pulse-border { 50% { border-left-color: rgba(16, 185, 129, 0.3); } }
+        
         input, textarea, select {
             background: rgba(0, 0, 0, 0.6) !important;
             border: 1px solid rgba(255, 255, 255, 0.07) !important;
-            color: #e5e7eb !important;
         }
         input:focus, textarea:focus, select:focus {
             border-color: #00A3FF !important;
             outline: none !important;
-            ring: 2px solid rgba(0, 163, 255, 0.2) !important;
+            box-shadow: 0 0 0 2px rgba(0, 163, 255, 0.15) !important;
         }
-        .calendar-day {
-            transition: all 0.15s ease;
-        }
-        .calendar-day:hover {
-            background: rgba(0, 163, 255, 0.2) !important;
-            transform: scale(1.05);
-        }
-        .calendar-day.has-event {
-            background: rgba(0, 163, 255, 0.3);
-            border: 1px solid rgba(0, 163, 255, 0.5);
-            font-weight: bold;
-            color: #00A3FF;
-        }
-        .calendar-day.today {
-            background: rgba(139, 92, 246, 0.3);
-            border: 1px solid rgba(139, 92, 246, 0.5);
-            color: #c084fc;
-            font-weight: bold;
-        }
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #1a1a2e;
-            border-left: 3px solid #00A3FF;
-            padding: 12px 20px;
-            border-radius: 8px;
-            z-index: 1000;
-            animation: slideIn 0.3s ease-out;
-            font-size: 12px;
-            font-family: monospace;
-        }
-        .toast.error { border-left-color: #ef4444; }
-        .toast.success { border-left-color: #10b981; }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .sync-pulse {
-            animation: pulse 0.5s ease-in-out 2;
-        }
-        @keyframes pulse {
-            0% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.2); }
-            100% { opacity: 0.3; transform: scale(1); }
-        }
-        button {
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        button:active {
-            transform: scale(0.98);
-        }
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1a1a2e;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #00A3FF;
-            border-radius: 10px;
-        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #02040A; }
+        ::-webkit-scrollbar-thumb { background: #1A2333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00A3FF; }
     </style>
 </head>
 <body class="text-gray-300 min-h-screen pb-6">
@@ -121,770 +70,457 @@
             </div>
             <div>
                 <h1 class="text-xs font-mono text-gray-500 uppercase tracking-widest">IDEV INC // CLOUD TERMINAL</h1>
-                <h2 class="text-sm font-bold text-white tracking-tight">Workflow Portal</h2>
+                <h2 class="text-sm font-bold text-white tracking-tight">Welcome Back, Mukhtar</h2>
             </div>
         </div>
         
-        <div id="authContainer" class="flex items-center gap-2 text-[10px] font-mono glass-panel px-3 py-1.5 rounded-xl">
+        <div id="authContainer" class="flex items-center gap-2 text-[10px] font-mono glass-panel px-3 py-1.5 rounded-xl border-dashed">
             <div class="flex gap-1.5 items-center">
                 <i data-lucide="cloud-off" class="w-3.5 h-3.5 text-amber-500" id="syncStatusIcon"></i>
-                <span id="authStatus" class="text-gray-400">Not signed in</span>
+                <input type="email" id="authEmail" placeholder="Email" class="px-2 py-0.5 rounded text-[10px] w-28 bg-black">
+                <input type="password" id="authPassword" placeholder="Secret Key" class="px-2 py-0.5 rounded text-[10px] w-24 bg-black">
+                <button onclick="handleCloudSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded hover:bg-blue-600 hover:text-white">Connect</button>
+                <button onclick="handleCloudSignUp()" class="text-gray-500 hover:text-gray-300 text-[9px]">Provision</button>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <!-- Left Panel: Calendar & Events -->
-        <div class="glass-panel rounded-xl p-3.5 space-y-3.5 flex flex-col h-[540px]">
+        
+        <!-- Left Panel: Chrono Matrix, Alerts, Timers -->
+        <div class="glass-panel rounded-xl p-3.5 space-y-3.5 flex flex-col justify-between h-[540px]">
             <div>
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-blue-400">
-                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Calendar
-                    </h2>
-                    <div class="flex items-center gap-2">
-                        <button onclick="prevMonth()" class="p-1 hover:bg-gray-800 rounded text-gray-400 text-xs">←</button>
-                        <span id="monthYearDisplay" class="text-xs font-mono text-gray-300 font-bold min-w-[100px] text-center"></span>
-                        <button onclick="nextMonth()" class="p-1 hover:bg-gray-800 rounded text-gray-400 text-xs">→</button>
+                <div class="flex items-center justify-between mb-1.5">
+                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-blue-400"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Chrono Matrix</h2>
+                    <div class="flex items-center gap-1">
+                        <button onclick="prevMonth()" class="p-0.5 hover:bg-gray-900 rounded text-gray-400"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
+                        <span id="monthYearDisplay" class="text-[10px] font-mono text-gray-300 font-bold w-16 text-center"></span>
+                        <button onclick="nextMonth()" class="p-0.5 hover:bg-gray-900 rounded text-gray-400"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
                     </div>
                 </div>
-                <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center mb-3"></div>
-                <div id="eventsList" class="space-y-1 max-h-[180px] overflow-y-auto"></div>
-                <div class="flex gap-1 mt-2">
-                    <input type="text" id="newEventTitle" placeholder="New event..." class="text-[10px] rounded-md px-2 py-1 flex-1">
-                    <input type="date" id="newEventDate" class="text-[10px] rounded-md px-2 py-1 w-28">
-                    <button onclick="addEvent()" class="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-[10px] px-2 rounded hover:bg-blue-600/40">Add</button>
+                <div id="calendarGrid" class="grid grid-cols-7 gap-0.5 text-[9px] font-mono text-center mb-1.5 bg-black/30 p-1 rounded-lg border border-gray-900"></div>
+                <div id="eventsList" class="max-h-20 overflow-y-auto space-y-1 text-[10px]"></div>
+                <div class="flex gap-1 mt-1.5">
+                    <input type="text" id="newEventTitle" placeholder="Log environment exception..." class="text-[10px] rounded-md px-2 py-1 flex-1">
+                    <button onclick="addMergedEvent()" class="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-[10px] px-2 rounded-md hover:bg-blue-600 hover:text-white transition">Log</button>
                 </div>
             </div>
             
             <div class="border-t border-gray-900 pt-2.5">
-                <div class="flex justify-between items-center mb-2">
-                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-purple-400"><i data-lucide="bell" class="w-3.5 h-3.5"></i> Reminders</h2>
-                    <button onclick="addReminder()" class="text-[9px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-2 py-0.5 rounded hover:bg-purple-500/20">+ Add</button>
+                <div class="flex justify-between items-center mb-1">
+                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-purple-400"><i data-lucide="bell" class="w-3.5 h-3.5"></i> Active System Alerts</h2>
+                    <button onclick="quickAddReminder()" class="text-[9px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded hover:bg-purple-500/20 transition">+ Queue</button>
                 </div>
-                <div id="reminderList" class="space-y-1 max-h-[120px] overflow-y-auto"></div>
+                <div id="reminderList" class="space-y-1 max-h-[90px] overflow-y-auto pr-0.5"></div>
+            </div>
+
+            <div class="border-t border-gray-900 pt-2.5">
+                <div class="flex justify-between items-center mb-1.5">
+                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-emerald-400"><i data-lucide="timer" class="w-3.5 h-3.5"></i> Focus Matrices</h2>
+                    <div class="flex gap-1">
+                        <input type="text" id="newTimerNameInput" placeholder="Node title" class="text-[9px] rounded-md px-1.5 py-0.5 w-20 font-mono">
+                        <button onclick="createMergedTimer()" class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 rounded text-[10px] font-bold hover:bg-emerald-500/20">+</button>
+                    </div>
+                </div>
+                <div id="timersListMerged" class="space-y-1 max-h-[100px] overflow-y-auto pr-0.5"></div>
             </div>
         </div>
 
         <!-- Center Panel: Kanban Board -->
-        <div class="glass-panel rounded-xl p-3.5 flex flex-col h-[540px]">
-            <div class="flex justify-between items-center mb-3">
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-sky-400"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> Kanban Board</h2>
-                <span id="taskStats" class="text-[9px] font-mono bg-gray-950 px-2 py-0.5 rounded border border-gray-900"></span>
+        <div class="glass-panel rounded-xl p-3.5 flex flex-col justify-between h-[540px]">
+            <div class="flex flex-col h-[420px]">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-sky-400"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> Workflow Controls</h2>
+                    <span id="taskStatsBadge" class="text-[9px] font-mono bg-gray-950 px-2 py-0.5 rounded border border-gray-900 text-gray-400"></span>
+                </div>
+                <div id="kanbanContainer" class="space-y-3 overflow-y-auto flex-1 pr-0.5"></div>
             </div>
-            <div id="kanbanContainer" class="flex-1 overflow-y-auto space-y-3"></div>
-            
-            <div class="border-t border-gray-900 pt-3 mt-2">
-                <div class="flex gap-2">
-                    <input type="text" id="newTaskTitle" placeholder="New task..." class="text-[10px] rounded-md px-2 py-1.5 flex-1">
-                    <select id="newTaskStage" class="text-[10px] rounded-md px-2 text-gray-300 w-28">
-                        <option value="backlog">📋 Backlog</option>
-                        <option value="inprogress">⚙️ In Progress</option>
-                        <option value="done">✅ Done</option>
+
+            <div class="border-t border-gray-900 pt-2.5 space-y-1">
+                <div class="flex gap-1">
+                    <input type="text" id="quickTaskTitle" placeholder="Initialize objective..." class="text-[10px] rounded-md px-2 py-1 flex-1">
+                    <select id="quickTaskStage" class="text-[10px] rounded-md px-1 text-gray-300 w-24">
+                        <option value="backlog" id="opt-col1">📋 Backlog</option>
+                        <option value="inprogress" id="opt-col2">⚙️ Inprogress</option>
+                        <option value="done" id="opt-col3">✅ Done</option>
                     </select>
-                    <button onclick="addTask()" class="bg-sky-600/20 border border-sky-500/30 text-sky-400 px-3 rounded text-xs hover:bg-sky-600/40">+</button>
+                </div>
+                <div class="flex gap-1">
+                    <input type="time" id="quickTaskTime" class="text-[10px] rounded-md px-1.5 text-blue-400 font-mono w-1/4 text-center">
+                    <input type="text" id="quickTaskMeta" placeholder="Context notes/assets..." class="text-[10px] rounded-md px-2 flex-1 text-gray-400">
+                    <button onclick="addMergedTask()" class="bg-sky-600/20 border border-sky-500/30 text-sky-400 px-2 rounded-md text-xs hover:bg-sky-600 hover:text-white transition"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
                 </div>
             </div>
         </div>
 
-        <!-- Right Panel: Notes, Hardware, Links -->
-        <div class="glass-panel rounded-xl p-3.5 space-y-3 flex flex-col h-[540px]">
+        <!-- Right Panel: Notes, Hardware, Matrix -->
+        <div class="glass-panel rounded-xl p-3.5 space-y-3 flex flex-col justify-between h-[540px]">
             <div>
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-amber-400 mb-2"><i data-lucide="sticky-note" class="w-3.5 h-3.5"></i> Notes</h2>
-                <textarea id="globalNotes" rows="3" oninput="debouncedSync()" class="w-full rounded-lg text-[11px] font-mono p-2 resize-none" placeholder="Write your notes here..."></textarea>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-amber-400 mb-1.5"><i data-lucide="sticky-note" class="w-3.5 h-3.5"></i> Persistent Scratchpad</h2>
+                <textarea id="globalNotes" rows="3" oninput="debouncedSync()" class="w-full rounded-lg text-[10px] font-mono p-1.5 resize-none placeholder:text-gray-700" placeholder="// Drop immediate code architecture snapshots..."></textarea>
             </div>
             <div class="border-t border-gray-900 pt-2">
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-cyan-400 mb-2"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> Hardware</h2>
-                <div id="hardwareList" class="space-y-1 max-h-[100px] overflow-y-auto"></div>
-                <div class="flex gap-1 mt-2">
-                    <input type="text" id="newHardwareName" placeholder="Device name" class="text-[9px] rounded-md px-1.5 py-1 flex-1">
-                    <input type="text" id="newHardwareType" placeholder="Type" class="text-[9px] rounded-md px-1.5 py-1 w-16">
-                    <button onclick="addHardware()" class="bg-cyan-500/10 text-cyan-400 px-2 rounded text-[9px] hover:bg-cyan-500/20">+</button>
-                </div>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-cyan-400 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> Hardware Clusters</h2>
+                <div id="hardwareList" class="space-y-1 max-h-[120px] overflow-y-auto pr-0.5"></div>
             </div>
             <div class="border-t border-gray-900 pt-2">
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-fuchsia-400 mb-2"><i data-lucide="link" class="w-3.5 h-3.5"></i> Quick Links</h2>
-                <div id="matrixList" class="space-y-1 max-h-[100px] overflow-y-auto"></div>
-                <div class="flex gap-1 mt-2">
-                    <input type="text" id="newLinkTitle" placeholder="Title" class="text-[9px] rounded-md px-1.5 py-1 flex-1">
-                    <input type="text" id="newLinkUrl" placeholder="URL" class="text-[9px] rounded-md px-1.5 py-1 flex-1">
-                    <button onclick="addLink()" class="bg-fuchsia-500/10 text-fuchsia-400 px-2 rounded text-[9px] hover:bg-fuchsia-500/20">+</button>
-                </div>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-fuchsia-400 mb-1"><i data-lucide="git-branch" class="w-3.5 h-3.5"></i> Dynamic Structural Matrix</h2>
+                <div id="matrixLinksList" class="space-y-1.5 max-h-[160px] overflow-y-auto pr-0.5"></div>
             </div>
         </div>
     </main>
 
-    <footer class="max-w-7xl mx-auto px-4 mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-[10px] font-mono">
-        <div class="glass-panel rounded-lg p-2.5 flex justify-between items-center">
-            <div id="liveSummary" class="flex gap-4 text-gray-500"></div>
-            <button onclick="manualSync()" class="bg-green-600/20 text-green-400 border border-green-500/30 px-3 py-1 rounded hover:bg-green-600/30">⟳ Sync Now</button>
-        </div>
-        <div class="glass-panel rounded-lg p-2.5 flex justify-between items-center">
-            <span class="text-gray-600">⚡ Cloud Sync Active</span>
-            <div class="flex gap-3">
-                <button onclick="showAuthModal()" id="signInBtn" class="text-blue-400 hover:text-blue-300">Sign In</button>
-                <button onclick="resetAllData()" class="text-red-400 hover:text-red-300">Reset</button>
-                <button onclick="exportData()" class="text-blue-400 hover:text-blue-300">Export</button>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Simple Auth Modal -->
-    <div id="authModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-        <div class="glass-panel rounded-xl w-full max-w-md p-6 space-y-4">
-            <div class="flex justify-between items-center border-b border-gray-900 pb-3">
-                <h3 class="text-sm font-bold text-white">Sign In</h3>
-                <button onclick="closeAuthModal()" class="text-gray-500 hover:text-white">✕</button>
-            </div>
-            <div class="space-y-3">
-                <input type="email" id="modalEmail" placeholder="Email" class="w-full px-3 py-2 rounded text-sm bg-black/60 border border-gray-800">
-                <input type="password" id="modalPassword" placeholder="Password" class="w-full px-3 py-2 rounded text-sm bg-black/60 border border-gray-800">
-                <div class="flex gap-3 pt-2">
-                    <button onclick="handleSignIn()" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Sign In</button>
-                    <button onclick="handleSignUp()" class="flex-1 bg-gray-700 text-gray-300 py-2 rounded hover:bg-gray-600">Sign Up</button>
+    <div id="txtModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+        <div class="glass-panel rounded-xl w-full max-w-lg p-4 space-y-3 border border-blue-500/30 flex flex-col h-[400px]">
+            <div class="flex justify-between items-center border-b border-gray-900 pb-2">
+                <div class="flex items-center gap-2 text-blue-400">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span id="modalFileName" class="text-xs font-mono font-bold text-gray-200">file_sandbox.txt</span>
                 </div>
+                <button onclick="closeTxtModal()" class="text-gray-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <textarea id="modalTextContent" readonly class="w-full flex-1 bg-black/40 border border-gray-900 rounded-lg p-2.5 font-mono text-[11px] text-gray-300 resize-none focus:outline-none"></textarea>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeTxtModal()" class="bg-gray-900 border border-gray-800 text-gray-400 px-3 py-1 rounded-md text-xs hover:text-white transition">Close Browser Viewer</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // ============================================
-        // SIMPLE AUTH - Only you and 2 others can use
-        // Allowed emails: Add your emails here
-        // ============================================
-        const ALLOWED_EMAILS = [
-            "mukhtarolufadi@gmail.com",     // Replace with your email
-            "lynx05102010@gmail.com",        // Replace with second user
-            "idevincoperated@gmail.com"         // Replace with third user
-        ];
+    <footer class="max-w-7xl mx-auto px-4 mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-[10px] font-mono">
+        <div class="glass-panel rounded-lg p-2.5 flex justify-between items-center">
+            <div id="liveSummary" class="flex gap-4 text-gray-500"></div>
+            <button onclick="copyWorkflowSnapshot()" class="bg-gray-950 border border-gray-800 hover:text-white px-2 py-0.5 rounded transition">Snap</button>
+        </div>
+        <div class="glass-panel rounded-lg p-2.5 flex items-center justify-between">
+            <span class="text-gray-600">CLOUD SYNC LAYER ACTIVE // SUPABASE CLOUD</span>
+            <div class="flex gap-2">
+                <button onclick="resetAllWorkspace()" class="text-red-400 hover:text-red-300">Purge</button>
+                <button onclick="exportAllData()" class="text-blue-400 hover:text-blue-300">Backup</button>
+            </div>
+        </div>
+    </footer>
 
-        // Supabase config
-        const SUPABASE_URL = "https://spnxmkzudlkhsboivfax.supabase.co";
+    <script>
+        // --- SUPABASE CONFIGURATION ---
+        const SUPABASE_URL = "https://spnxmkzudlkhsboivfax.supabase.co"; 
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbnhta3p1ZGxraHNib2l2ZmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjcyNzEsImV4cCI6MjA5NTQwMzI3MX0.pCND95Fg6rWTXYVW90IYKEeEpQkXuO77kMnA5Nbec74";
         
-        let supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let currentUser = null;
-        let syncTimer = null;
-        let currentCalendarDate = new Date();
-        
-        // Workspace data
+        let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let authenticatedUser = null;
+        let syncTimeout = null;
+        let initialLoadDone = false;
+
+        // --- UNIFIED WORKSPACE STATE (matches schema.sql structure) ---
         let workspace = {
             tasks: { backlog: [], inprogress: [], done: [] },
+            columnNames: { backlog: "📋  backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" },
             reminders: [],
             timers: [],
             events: [],
             notes: "",
-            hardware: [],
-            matrix: []
+            hardware: [
+                { id: 1, type: "Core Terminal", name: "ASUS Vivobook 16X", note: "Ryzen 7 // RTX Architecture Node" },
+                { id: 2, type: "Mobile Interface", name: "Samsung Galaxy A17", note: "CODM High Sensitivity Workspace Mapping" },
+                { id: 3, type: "Visual Pipeline", name: "LG 32\" Display", note: "Vertical Orientation Mount Array" }
+            ],
+            matrix: [
+                { id: 1, title: "TAI Group Hub", sub: "Ahmad / Taoheed alignment matrix", url: "#" },
+                { id: 2, title: "Multi-Tenancy Core", sub: "Centralized application services", url: "#" },
+                { id: 3, title: "Web3 Sandbox", sub: "Solidity architecture nodes", url: "#" },
+                { id: 4, title: "Gaming Logs", sub: "EA FC 26 / Naruto Storm 5", url: "#" }
+            ]
         };
 
-        // ============================================
-        // UI Functions
-        // ============================================
-        function showToast(msg, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = (type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : 'ℹ️ ') + msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+        // --- Helper: Map local variables from workspace for renderers (backward compatibility) ---
+        let tasks = workspace.tasks;
+        let columnNames = workspace.columnNames;
+        let reminders = workspace.reminders;
+        let timers = workspace.timers;
+        let events = workspace.events;
+        let hardware = workspace.hardware;
+        let matrix = workspace.matrix;
+
+        function syncLocalRefs() {
+            tasks = workspace.tasks;
+            columnNames = workspace.columnNames;
+            reminders = workspace.reminders;
+            timers = workspace.timers;
+            events = workspace.events;
+            hardware = workspace.hardware;
+            matrix = workspace.matrix;
         }
 
-        function showAuthModal() {
-            document.getElementById('authModal').classList.remove('hidden');
-        }
-
-        function closeAuthModal() {
-            document.getElementById('authModal').classList.add('hidden');
-        }
-
-        function updateAuthUI() {
-            const container = document.getElementById('authContainer');
-            const signInBtn = document.getElementById('signInBtn');
-            const authStatus = document.getElementById('authStatus');
-            const icon = document.getElementById('syncStatusIcon');
-            
-            if (currentUser) {
-                container.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i>
-                        <span class="text-gray-400 text-[10px]">${currentUser.email}</span>
-                        <button onclick="signOut()" class="text-red-400 border border-red-900/40 bg-red-950/20 px-2 py-0.5 rounded text-[9px] hover:bg-red-900">Sign Out</button>
-                    </div>
-                `;
-                if (signInBtn) signInBtn.style.display = 'none';
-                if (authStatus) authStatus.innerText = currentUser.email;
-                if (icon) icon.setAttribute('data-lucide', 'cloud');
-            } else {
-                container.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="cloud-off" class="w-3.5 h-3.5 text-amber-500"></i>
-                        <span class="text-gray-400 text-[10px]">Not signed in</span>
-                        <button onclick="showAuthModal()" class="text-blue-400 border border-blue-900/40 bg-blue-950/20 px-2 py-0.5 rounded text-[9px] hover:bg-blue-900">Sign In</button>
-                    </div>
-                `;
-                if (signInBtn) signInBtn.style.display = 'block';
-                if (authStatus) authStatus.innerText = 'Not signed in';
-                if (icon) icon.setAttribute('data-lucide', 'cloud-off');
-            }
-            if (window.lucide) lucide.createIcons();
-        }
-
-        // ============================================
-        // Auth Functions (with email whitelist)
-        // ============================================
-        async function handleSignUp() {
-            const email = document.getElementById('modalEmail').value.trim();
-            const password = document.getElementById('modalPassword').value;
-            
-            if (!email || !password) {
-                showToast('Enter email and password', 'error');
-                return;
-            }
-            
-            // Check if email is allowed
-            if (!ALLOWED_EMAILS.includes(email)) {
-                showToast('Access denied. You are not authorized to sign up.', 'error');
-                return;
-            }
-            
-            const { error } = await supabase.auth.signUp({ email, password });
-            if (error) {
-                showToast(error.message, 'error');
-            } else {
-                showToast('Account created! Please sign in.', 'success');
-                closeAuthModal();
-            }
-        }
-
-        async function handleSignIn() {
-            const email = document.getElementById('modalEmail').value.trim();
-            const password = document.getElementById('modalPassword').value;
-            
-            if (!email || !password) {
-                showToast('Enter email and password', 'error');
-                return;
-            }
-            
-            // Check if email is allowed
-            if (!ALLOWED_EMAILS.includes(email)) {
-                showToast('Access denied. Email not authorized.', 'error');
-                return;
-            }
-            
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                showToast(error.message, 'error');
-            } else {
-                showToast('Signed in!', 'success');
-                closeAuthModal();
-            }
-        }
-
-        async function signOut() {
-            await supabase.auth.signOut();
-            showToast('Signed out', 'info');
-        }
-
-        // ============================================
-        // Cloud Sync
-        // ============================================
-        async function pushToCloud() {
-            if (!currentUser) return;
-            try {
-                const { error } = await supabase
+        // --- CLOUD SYNC (aligned with schema.sql) ---
+        async function ensureUserWorkspaceRecord() {
+            if (!supabaseClient || !authenticatedUser) return false;
+            const { data, error } = await supabaseClient
+                .from('user_workspaces')
+                .select('id')
+                .eq('user_id', authenticatedUser.id)
+                .maybeSingle();
+            if (error && error.code !== 'PGRST116') return false;
+            if (!data) {
+                const { error: insertError } = await supabaseClient
                     .from('user_workspaces')
-                    .upsert({ user_id: currentUser.id, data: workspace, updated_at: new Date().toISOString() }, 
-                            { onConflict: 'user_id' });
-                if (error) throw error;
-                const icon = document.getElementById('syncStatusIcon');
-                if (icon) icon.classList.add('sync-pulse');
-                setTimeout(() => icon?.classList.remove('sync-pulse'), 500);
-            } catch (err) {
-                console.error('Push error:', err);
+                    .insert({ user_id: authenticatedUser.id, data: workspace });
+                if (insertError) console.error("Insert error:", insertError);
+                else console.log("Workspace created for user");
             }
+            return true;
         }
 
-        async function pullFromCloud() {
-            if (!currentUser) return;
-            try {
-                const { data, error } = await supabase
-                    .from('user_workspaces')
-                    .select('data')
-                    .eq('user_id', currentUser.id)
-                    .single();
-                if (error && error.code !== 'PGRST116') throw error;
-                if (data?.data) {
-                    workspace = data.data;
-                    // Ensure all arrays exist
-                    if (!workspace.tasks) workspace.tasks = { backlog: [], inprogress: [], done: [] };
-                    if (!workspace.reminders) workspace.reminders = [];
-                    if (!workspace.timers) workspace.timers = [];
-                    if (!workspace.events) workspace.events = [];
-                    if (!workspace.hardware) workspace.hardware = [];
-                    if (!workspace.matrix) workspace.matrix = [];
-                    if (workspace.notes === undefined) workspace.notes = "";
-                    
-                    const notesEl = document.getElementById('globalNotes');
-                    if (notesEl) notesEl.value = workspace.notes || "";
-                    renderAll();
-                }
-            } catch (err) {
-                console.error('Pull error:', err);
+        async function pushCloudWorkspace() {
+            if (!supabaseClient || !authenticatedUser) return;
+            await ensureUserWorkspaceRecord();
+            const { error } = await supabaseClient
+                .from('user_workspaces')
+                .update({ data: workspace, updated_at: new Date().toISOString() })
+                .eq('user_id', authenticatedUser.id);
+            if (error) console.error("Cloud push error:", error);
+        }
+
+        async function pullCloudWorkspace() {
+            if (!supabaseClient || !authenticatedUser) return;
+            const { data, error } = await supabaseClient
+                .from('user_workspaces')
+                .select('data')
+                .eq('user_id', authenticatedUser.id)
+                .maybeSingle();
+            if (error) {
+                console.error("Pull error:", error);
+                return;
+            }
+            if (data && data.data) {
+                workspace = data.data;
+                // Ensure hardware/matrix fallback if missing in old schema
+                if (!workspace.hardware) workspace.hardware = [...hardware];
+                if (!workspace.matrix) workspace.matrix = [...matrix];
+                if (!workspace.columnNames) workspace.columnNames = { backlog: "📋  backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" };
+                if (!workspace.timers) workspace.timers = [];
+                if (!workspace.events) workspace.events = [];
+                if (!workspace.reminders) workspace.reminders = [];
+                if (!workspace.tasks) workspace.tasks = { backlog: [], inprogress: [], done: [] };
+                syncLocalRefs();
+                if (document.getElementById('globalNotes')) document.getElementById('globalNotes').value = workspace.notes || "";
+                fullRender(false);
+            } else {
+                // First time user: create record with defaults
+                await ensureUserWorkspaceRecord();
             }
         }
 
         function debouncedSync() {
-            const notesEl = document.getElementById('globalNotes');
-            if (notesEl) workspace.notes = notesEl.value;
-            saveToLocal();
-            if (currentUser) {
-                clearTimeout(syncTimer);
-                syncTimer = setTimeout(() => pushToCloud(), 1500);
-            }
+            workspace.notes = document.getElementById('globalNotes') ? document.getElementById('globalNotes').value : "";
+            syncLocalRefs(); // capture latest state from renderers
+            saveLocalCache();
+            if (!authenticatedUser) return;
+            clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(() => {
+                pushCloudWorkspace();
+            }, 1500);
         }
 
-        function manualSync() {
-            if (!currentUser) {
-                showToast('Please sign in first', 'error');
-                return;
-            }
-            showToast('Syncing...', 'info');
-            pushToCloud().then(() => pullFromCloud());
-        }
-
-        function saveToLocal() {
+        // --- Local Storage Cache ---
+        function saveLocalCache() {
             localStorage.setItem('idev_workspace', JSON.stringify(workspace));
         }
 
-        function loadFromLocal() {
-            const saved = localStorage.getItem('idev_workspace');
-            if (saved) {
+        function loadLocalCache() {
+            const cached = localStorage.getItem('idev_workspace');
+            if (cached) {
                 try {
-                    workspace = JSON.parse(saved);
-                    const notesEl = document.getElementById('globalNotes');
-                    if (notesEl) notesEl.value = workspace.notes || "";
-                    renderAll();
+                    const parsed = JSON.parse(cached);
+                    workspace = parsed;
+                    syncLocalRefs();
+                    if (document.getElementById('globalNotes')) document.getElementById('globalNotes').value = workspace.notes || "";
                 } catch(e) {}
             }
         }
 
-        // ============================================
-        // CALENDAR FUNCTIONS
-        // ============================================
-        function renderCalendar() {
-            const year = currentCalendarDate.getFullYear();
-            const month = currentCalendarDate.getMonth();
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const today = new Date();
-            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            
-            const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-            document.getElementById('monthYearDisplay').innerHTML = `${monthNames[month]} ${year}`;
-            
-            const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-            let html = weekdays.map(day => `<div class="text-[9px] text-gray-500 font-bold py-1">${day}</div>`).join('');
-            
-            // Adjust for Sunday-first calendar
-            let startOffset = firstDay === 0 ? 6 : firstDay - 1;
-            for (let i = 0; i < startOffset; i++) {
-                html += `<div class="p-1 text-gray-700">-</div>`;
+        // --- AUTH ---
+        function updateCloudUI(isOnline, email) {
+            const container = document.getElementById('authContainer');
+            if (!container) return;
+            if(isOnline) {
+                container.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span class="text-gray-400 truncate max-w-[110px]">${email}</span>
+                        <button onclick="handleCloudSignOut()" class="text-red-400 border border-red-900/40 bg-red-950/20 px-1.5 py-0.5 rounded hover:bg-red-900 hover:text-white transition">Disconnect</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="flex gap-1.5 items-center">
+                        <i data-lucide="cloud-off" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <input type="email" id="authEmail" placeholder="Email" class="px-2 py-0.5 rounded text-[10px] w-28 bg-black">
+                        <input type="password" id="authPassword" placeholder="Secret Key" class="px-2 py-0.5 rounded text-[10px] w-24 bg-black">
+                        <button onclick="handleCloudSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded hover:bg-blue-600 hover:text-white">Connect</button>
+                        <button onclick="handleCloudSignUp()" class="text-gray-500 hover:text-gray-300 text-[9px]">Provision</button>
+                    </div>
+                `;
             }
-            
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const hasEvent = workspace.events?.some(e => e.date === dateStr) || false;
-                const isToday = dateStr === todayStr;
-                let cls = "calendar-day p-1 rounded text-[10px] cursor-pointer text-center";
-                if (hasEvent) cls += " has-event";
-                if (isToday) cls += " today";
-                html += `<div class="${cls}" onclick="selectDate('${dateStr}')">${d}</div>`;
-            }
-            
-            document.getElementById('calendarGrid').innerHTML = html;
-        }
-
-        function selectDate(dateStr) {
-            document.getElementById('newEventDate').value = dateStr;
-            showToast(`Selected ${dateStr}`, 'info');
-        }
-
-        function prevMonth() {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-            renderCalendar();
-        }
-
-        function nextMonth() {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-            renderCalendar();
-        }
-
-        // ============================================
-        // RENDER ALL COMPONENTS
-        // ============================================
-        function renderAll() {
-            renderCalendar();
-            renderEvents();
-            renderReminders();
-            renderKanban();
-            renderHardware();
-            renderLinks();
-            updateStats();
             if (window.lucide) lucide.createIcons();
         }
 
-        function renderEvents() {
-            const container = document.getElementById('eventsList');
-            if (!container) return;
-            const events = workspace.events || [];
-            if (events.length === 0) {
-                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No events</div>';
-                return;
-            }
-            container.innerHTML = events.map((e, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-2 rounded">
-                    <div>
-                        <span class="text-blue-400 font-mono text-[9px]">${e.date || 'No date'}</span>
-                        <span class="ml-2">${escapeHtml(e.title)}</span>
-                    </div>
-                    <button onclick="deleteEvent(${i})" class="text-red-400 hover:text-red-300">✕</button>
-                </div>
-            `).join('');
+        async function handleCloudSignUp() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            if(!email || !password) return alert("Provide credentials.");
+            const { error } = await supabaseClient.auth.signUp({ email, password });
+            if(error) alert("Provision Error: " + error.message);
+            else alert("Architecture space provisioned! Click Connect to authenticate.");
         }
 
-        function renderReminders() {
-            const container = document.getElementById('reminderList');
-            if (!container) return;
-            const reminders = workspace.reminders || [];
-            if (reminders.length === 0) {
-                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No reminders</div>';
-                return;
-            }
-            container.innerHTML = reminders.map((r, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-2 rounded">
-                    <span>${escapeHtml(r.text)}</span>
-                    <button onclick="deleteReminder(${i})" class="text-red-400 hover:text-red-300">✕</button>
-                </div>
-            `).join('');
+        async function handleCloudSignIn() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            if(!email || !password) return alert("Provide credentials.");
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if(error) alert("Connection Refused: " + error.message);
         }
 
+        async function handleCloudSignOut() {
+            await supabaseClient.auth.signOut();
+            authenticatedUser = null;
+            updateCloudUI(false, null);
+            loadLocalCache(); // revert to local state
+            fullRender(true);
+        }
+
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            if (session) {
+                authenticatedUser = session.user;
+                updateCloudUI(true, session.user.email);
+                await pullCloudWorkspace();
+                fullRender(true);
+            } else {
+                authenticatedUser = null;
+                updateCloudUI(false, null);
+                loadLocalCache();
+                fullRender(true);
+            }
+        });
+
+        // --- RENDER ENGINE (all UI components read from workspace) ---
+        function fullRender(shouldSyncCloud = true) {
+            syncLocalRefs();
+            renderCalendar(); renderReminders(); renderTimers();
+            renderKanban(); renderHardware(); renderMatrix();
+            renderLiveSummary(); updateTaskStats();
+            if (shouldSyncCloud && authenticatedUser) debouncedSync();
+            else saveLocalCache();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // --- KANBAN ---
         function renderKanban() {
             const container = document.getElementById('kanbanContainer');
-            if (!container) return;
-            container.innerHTML = '';
-            
+            if(!container) return; container.innerHTML = '';
             const stages = ['backlog', 'inprogress', 'done'];
-            const titles = { backlog: '📋 Backlog', inprogress: '⚙️ In Progress', done: '✅ Done' };
-            const colors = { backlog: 'border-l-blue-500', inprogress: 'border-l-purple-500', done: 'border-l-emerald-500' };
-            
-            stages.forEach(stage => {
-                const column = document.createElement('div');
-                column.className = 'bg-black/20 rounded-lg p-2';
-                column.innerHTML = `
-                    <div class="flex justify-between items-center mb-2 px-1">
-                        <span class="text-xs font-bold text-gray-400">${titles[stage]}</span>
-                        <span class="text-[10px] text-gray-500">${workspace.tasks[stage]?.length || 0}</span>
+            stages.forEach(s => {
+                const optEl = document.getElementById(`opt-${s}`);
+                if(optEl && columnNames[s]) optEl.innerText = columnNames[s];
+            });
+            stages.forEach(key => {
+                const stageDiv = document.createElement('div');
+                stageDiv.className = 'space-y-1 bg-black/10 p-2 rounded-lg border border-gray-900';
+                stageDiv.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <input type="text" value="${escapeHtml(columnNames[key] || key)}" onchange="updateColumnName('${key}', this.value)" class="text-[10px] font-mono text-gray-400 font-bold bg-transparent border-none p-0 focus:ring-0 w-3/4">
+                        <span class="text-[9px] font-mono font-medium text-gray-600 bg-gray-950 px-1.5 rounded">${tasks[key] ? tasks[key].length : 0}</span>
                     </div>
-                    <div class="space-y-1.5" id="tasks-${stage}"></div>
                 `;
-                
-                const tasksContainer = column.querySelector(`#tasks-${stage}`);
-                const stageTasks = workspace.tasks[stage] || [];
-                stageTasks.forEach((task, idx) => {
-                    const taskDiv = document.createElement('div');
-                    taskDiv.className = `task-card p-2 rounded-md text-[11px] ${colors[stage]} ${task.completed ? 'task-completed' : ''}`;
-                    taskDiv.innerHTML = `
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2">
-                                    <input type="checkbox" ${task.completed ? 'checked' : ''} 
-                                           onchange="toggleTask('${stage}', ${idx}, this.checked)" class="w-3 h-3 rounded">
-                                    <span class="${task.completed ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(task.title)}</span>
+                const listDiv = document.createElement('div'); listDiv.className = 'space-y-1';
+                if(tasks[key]) {
+                    tasks[key].forEach((task, idx) => {
+                        const isCompleted = !!task.completed;
+                        const taskEl = document.createElement('div');
+                        taskEl.className = `task-card p-2 rounded-md text-[11px] bg-black/50 border-l-2 ${isCompleted ? 'task-completed' : (key === 'backlog' ? 'border-l-blue-500' : key === 'inprogress' ? 'border-l-purple-500' : 'border-l-emerald-500')}`;
+                        let readButtonHtml = task.fileContent ? `<button onclick="triggerModalView('${key}', ${idx})" class="text-sky-400 hover:text-sky-300 text-[9px] font-mono flex items-center gap-0.5"><i data-lucide="eye" class="w-2.5 h-2.5"></i> Read File</button>` : '';
+                        taskEl.innerHTML = `
+                            <div class="space-y-0.5">
+                                <div class="flex justify-between items-start gap-1">
+                                    <div class="flex items-center gap-2 max-w-[75%]">
+                                        <input type="checkbox" ${isCompleted ? 'checked' : ''} onchange="toggleTaskProgress('${key}', ${idx}, this.checked)" class="w-3 h-3 rounded border-gray-800 text-blue-500 focus:ring-0 bg-black cursor-pointer">
+                                        <span class="font-semibold text-gray-200 truncate ${isCompleted ? 'line-through text-gray-500' : ''}">${escapeHtml(task.title)}</span>
+                                    </div>
+                                    <span class="text-[9px] font-mono text-blue-400">${task.time || '12:00'}</span>
                                 </div>
-                                ${task.meta ? `<div class="text-[9px] text-gray-500 mt-0.5 ml-5">${escapeHtml(task.meta)}</div>` : ''}
+                                <p class="text-[10px] text-gray-500 truncate pl-5">${escapeHtml(task.meta || 'No document arrays logged')}</p>
                             </div>
-                            <div class="flex gap-1">
-                                ${stage !== 'backlog' ? `<button onclick="moveTask('${stage}', ${idx}, 'left')" class="text-gray-500 hover:text-white text-xs">←</button>` : ''}
-                                ${stage !== 'done' ? `<button onclick="moveTask('${stage}', ${idx}, 'right')" class="text-gray-500 hover:text-white text-xs">→</button>` : ''}
-                                <button onclick="deleteTask('${stage}', ${idx})" class="text-gray-500 hover:text-red-400 text-xs">✕</button>
+                            <div class="flex items-center mt-1.5 pt-1 border-t border-gray-900/60 justify-between pl-5">
+                                <div class="flex gap-2 items-center">
+                                    <label class="text-[9px] font-mono text-gray-500 hover:text-blue-400 cursor-pointer flex items-center gap-0.5"><i data-lucide="file-up" class="w-2.5 h-2.5"></i> Ingest<input type="file" accept=".txt" class="hidden" onchange="parseTxtToTask('${key}', ${idx}, this)"></label>
+                                    ${readButtonHtml}
+                                </div>
+                                <div class="flex gap-1.5 items-center">
+                                    ${key !== 'backlog' ? `<button onclick="moveTask('${key}', ${idx}, 'left')" class="text-gray-500 hover:text-white"><i data-lucide="arrow-left" class="w-2.5 h-2.5"></i></button>` : ''}
+                                    ${key !== 'done' ? `<button onclick="moveTask('${key}', ${idx}, 'right')" class="text-gray-500 hover:text-white"><i data-lucide="arrow-right" class="w-2.5 h-2.5"></i></button>` : ''}
+                                    <button onclick="deleteTaskItem('${key}', ${idx})" class="text-gray-500 hover:text-red-400"><i data-lucide="trash-2" class="w-2.5 h-2.5"></i></button>
+                                </div>
                             </div>
-                        </div>
-                    `;
-                    tasksContainer.appendChild(taskDiv);
-                });
-                container.appendChild(column);
+                        `;
+                        listDiv.appendChild(taskEl);
+                    });
+                }
+                stageDiv.appendChild(listDiv); container.appendChild(stageDiv);
             });
         }
 
-        function renderHardware() {
-            const container = document.getElementById('hardwareList');
-            if (!container) return;
-            const hardware = workspace.hardware || [];
-            if (hardware.length === 0) {
-                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No hardware</div>';
-                return;
-            }
-            container.innerHTML = hardware.map((h, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-2 rounded">
-                    <div>
-                        <span class="text-cyan-400">${escapeHtml(h.type)}</span>
-                        <span class="ml-2">${escapeHtml(h.name)}</span>
-                    </div>
-                    <button onclick="deleteHardware(${i})" class="text-red-400 hover:text-red-300">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function renderLinks() {
-            const container = document.getElementById('matrixList');
-            if (!container) return;
-            const matrix = workspace.matrix || [];
-            if (matrix.length === 0) {
-                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No links</div>';
-                return;
-            }
-            container.innerHTML = matrix.map((l, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-2 rounded">
-                    <a href="${escapeHtml(l.url)}" target="_blank" class="text-fuchsia-400 hover:underline truncate flex-1">${escapeHtml(l.title)}</a>
-                    <button onclick="deleteLink(${i})" class="text-red-400 hover:text-red-300 ml-2">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function updateStats() {
-            let total = 0, completed = 0;
-            ['backlog', 'inprogress', 'done'].forEach(s => {
-                const tasks = workspace.tasks[s] || [];
-                total += tasks.length;
-                completed += tasks.filter(t => t.completed).length;
-            });
-            const statsEl = document.getElementById('taskStats');
-            if (statsEl) statsEl.innerText = `${completed}/${total} done`;
-            
-            const summary = document.getElementById('liveSummary');
-            if (summary) {
-                summary.innerHTML = `
-                    <div>📋 Tasks: ${total}</div>
-                    <div>🔔 Alerts: ${workspace.reminders?.length || 0}</div>
-                    <div>📅 Events: ${workspace.events?.length || 0}</div>
-                `;
+        function toggleTaskProgress(stage, idx, checked) {
+            if(tasks[stage] && tasks[stage][idx]) {
+                tasks[stage][idx].completed = checked;
+                if(checked && stage !== 'done') { let taskVal = tasks[stage].splice(idx, 1)[0]; tasks['done'].push(taskVal); }
+                else if(!checked && stage === 'done') { let taskVal = tasks[stage].splice(idx, 1)[0]; tasks['inprogress'].push(taskVal); }
+                fullRender();
             }
         }
+        function updateColumnName(key, value) { columnNames[key] = value; fullRender(); }
+        function parseTxtToTask(stage, idx, input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { tasks[stage][idx].meta = `Loaded: ${file.name}`; tasks[stage][idx].fileContent = e.target.result; fullRender(); }; reader.readAsText(file); }
+        function triggerModalView(stage, idx) { const task = tasks[stage][idx]; if(task && task.fileContent) openTxtModal(`${task.title}.txt`, task.fileContent); }
+        function openTxtModal(fileName, content) { document.getElementById('modalFileName').innerText = fileName; document.getElementById('modalTextContent').value = content; document.getElementById('txtModal').classList.remove('hidden'); if (window.lucide) lucide.createIcons(); }
+        function closeTxtModal() { document.getElementById('txtModal').classList.add('hidden'); }
+        function moveTask(stage, idx, dir) { const order = ['backlog', 'inprogress', 'done']; let currentIdx = order.indexOf(stage); let targetIdx = dir === 'left' ? currentIdx - 1 : currentIdx + 1; if(targetIdx < 0 || targetIdx >= order.length) return; const taskVal = tasks[stage][idx]; tasks[stage].splice(idx, 1); tasks[order[targetIdx]].push(taskVal); fullRender(); }
+        function deleteTaskItem(stage, idx) { tasks[stage].splice(idx, 1); fullRender(); }
+        function addMergedTask() { const title = document.getElementById('quickTaskTitle').value.trim(); const stage = document.getElementById('quickTaskStage').value; const time = document.getElementById('quickTaskTime').value; const meta = document.getElementById('quickTaskMeta').value.trim(); if(title) { tasks[stage].push({ title, time: time || "12:00", meta, fileContent: "", completed: (stage === 'done') }); document.getElementById('quickTaskTitle').value = ''; document.getElementById('quickTaskMeta').value = ''; fullRender(); } }
+        function updateTaskStats() { let total = 0, checkedCompleted = 0; ['backlog', 'inprogress', 'done'].forEach(key => { if(tasks[key]) { total += tasks[key].length; tasks[key].forEach(t => { if(t.completed) checkedCompleted++; }); } }); const badge = document.getElementById('taskStatsBadge'); if(badge) badge.innerText = `${checkedCompleted}/${total} Completed`; }
 
-        // ============================================
-        // CRUD Operations
-        // ============================================
-        function addTask() {
-            const title = document.getElementById('newTaskTitle')?.value.trim();
-            const stage = document.getElementById('newTaskStage')?.value;
-            if (title && stage) {
-                if (!workspace.tasks[stage]) workspace.tasks[stage] = [];
-                workspace.tasks[stage].push({ title, meta: '', completed: stage === 'done' });
-                document.getElementById('newTaskTitle').value = '';
-                renderAll();
-                debouncedSync();
-            }
-        }
+        // --- Reminders, Timers, Calendar, Hardware, Matrix (simplified reuses existing logic) ---
+        function renderReminders() { const container = document.getElementById('reminderList'); if(!container) return; if(reminders.length===0) { container.innerHTML='<div class="text-[9px] text-gray-600 text-center py-2 font-mono">// No logged exceptions found</div>'; return; } container.innerHTML=''; reminders.forEach((rem,idx)=>{ const div=document.createElement('div'); div.className='flex justify-between items-center text-[10px] bg-black/40 p-1 rounded-md border border-gray-900'; div.innerHTML=`<div><span class="font-medium text-gray-300 block truncate w-40">${escapeHtml(rem.text)}</span><span class="text-[9px] font-mono text-purple-400">${new Date(rem.datetime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><button onclick="deleteReminder(${idx})" class="text-gray-600 hover:text-red-400"><i data-lucide="x" class="w-3 h-3"></i></button>`; container.appendChild(div); }); }
+        function quickAddReminder() { let text = prompt("Enter explicit alert context blueprint:", "Structural Alignment Check"); if(!text) return; let dateStr = prompt("Provide Timestamp coordinates (YYYY-MM-DD HH:MM)", "2026-05-26 14:00"); if(dateStr) { let iso = dateStr.replace(" ", "T"); if(!isNaN(Date.parse(iso))) { reminders.push({ id: Date.now(), text: text, datetime: iso }); fullRender(); } else alert("Format parse mismatch constraints."); } }
+        function deleteReminder(idx) { reminders.splice(idx,1); fullRender(); }
 
-        function toggleTask(stage, idx, checked) {
-            if (workspace.tasks[stage] && workspace.tasks[stage][idx]) {
-                workspace.tasks[stage][idx].completed = checked;
-                renderAll();
-                debouncedSync();
-            }
-        }
+        function renderTimers() { const container = document.getElementById('timersListMerged'); if(!container) return; if(timers.length===0) { container.innerHTML='<div class="text-[9px] text-gray-600 text-center py-2 font-mono">// Active session clusters idle</div>'; return; } container.innerHTML=''; timers.forEach(timer=>{ const mins=Math.floor(timer.seconds/60), secs=timer.seconds%60; const div=document.createElement('div'); div.className=`flex justify-between items-center text-[10px] bg-black/50 p-1.5 rounded-md border border-gray-900 ${timer.isRunning?'timer-active':''}`; div.innerHTML=`<div><span class="font-mono text-gray-400">${escapeHtml(timer.name||'Dev Session')}</span> <span data-timer-id="${timer.id}" class="text-emerald-400 font-mono ml-1 font-bold">${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}</span></div><div class="flex gap-1.5 items-center">${!timer.isRunning?`<button onclick="startTimerById(${timer.id})" class="text-emerald-500 hover:text-emerald-400"><i data-lucide="play" class="w-3 h-3"></i></button>`:`<button onclick="stopTimerById(${timer.id})" class="text-amber-500 hover:text-amber-400"><i data-lucide="pause" class="w-3 h-3"></i></button>`}<button onclick="resetTimerById(${timer.id})" class="text-gray-500 hover:text-white"><i data-lucide="square" class="w-3 h-3"></i></button><button onclick="deleteTimerById(${timer.id})" class="text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div>`; container.appendChild(div); }); if(window.lucide) lucide.createIcons(); }
+        function startTimerById(id) { const timer = timers.find(t=>t.id===id); if(!timer||timer.isRunning) return; timer.isRunning=true; clearInterval(timer.intervalId); renderTimers(); timer.intervalId=setInterval(()=>{ timer.seconds++; const display=document.querySelector(`[data-timer-id="${timer.id}"]`); if(display){ const m=Math.floor(timer.seconds/60), s=timer.seconds%60; display.innerText=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; } },1000); }
+        function stopTimerById(id) { const timer=timers.find(t=>t.id===id); if(timer&&timer.isRunning){ clearInterval(timer.intervalId); timer.isRunning=false; timer.intervalId=null; renderTimers(); fullRender(); } }
+        function resetTimerById(id) { const timer=timers.find(t=>t.id===id); if(timer){ clearInterval(timer.intervalId); timer.seconds=0; timer.isRunning=false; timer.intervalId=null; renderTimers(); } }
+        function deleteTimerById(id) { stopTimerById(id); timers=timers.filter(t=>t.id!==id); renderTimers(); }
+        function createMergedTimer() { const input=document.getElementById('newTimerNameInput'); let name=input.value.trim(); if(!name) name="Dev Session"; timers.push({ id:Date.now(), name:name, seconds:0, isRunning:false, intervalId:null }); input.value=''; renderTimers(); }
 
-        function moveTask(stage, idx, direction) {
-            const stages = ['backlog', 'inprogress', 'done'];
-            const current = stages.indexOf(stage);
-            const newStage = direction === 'left' ? stages[current - 1] : stages[current + 1];
-            if (!newStage || !workspace.tasks[stage] || !workspace.tasks[stage][idx]) return;
-            
-            const task = workspace.tasks[stage][idx];
-            workspace.tasks[stage].splice(idx, 1);
-            if (!workspace.tasks[newStage]) workspace.tasks[newStage] = [];
-            workspace.tasks[newStage].push(task);
-            renderAll();
-            debouncedSync();
-        }
+        // Calendar, hardware, matrix simplified (identical to previous working version)
+        let currentCalendarDate = new Date(2026,4,26); let selectedEventDate="2026-05-26";
+        function renderCalendar() { const year=currentCalendarDate.getFullYear(), month=currentCalendarDate.getMonth(); const firstDay=new Date(year,month,1).getDay(), daysInMonth=new Date(year,month+1,0).getDate(); const adjustedFirst=firstDay===0?6:firstDay-1; const container=document.getElementById('calendarGrid'); if(!container) return; const monthsLabels=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]; document.getElementById('monthYearDisplay').innerText=`${monthsLabels[month]} ${year}`; let gridHtml='<div class="text-gray-600 font-bold">M</div><div class="text-gray-600 font-bold">T</div><div class="text-gray-600 font-bold">W</div><div class="text-gray-600 font-bold">T</div><div class="text-gray-600 font-bold">F</div><div class="text-gray-600 font-bold">S</div><div class="text-gray-600 font-bold">S</div>'; for(let i=0;i<adjustedFirst;i++) gridHtml+=`<div class="p-0.5 text-gray-800 opacity-20">-</div>`; for(let d=1;d<=daysInMonth;d++){ const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const hasEvent=events.some(e=>e.date===dateStr); let cls="p-0.5 rounded text-[9px] hover:bg-blue-500/20 cursor-pointer transition"; if(hasEvent) cls+=" bg-blue-950 text-blue-400 font-bold border border-blue-900/50"; gridHtml+=`<div class="${cls}" onclick="selectEventDate('${dateStr}')">${d}</div>`; } container.innerHTML=gridHtml; const eventsContainer=document.getElementById('eventsList'); if(!eventsContainer) return; const monthEvents=events.filter(e=>new Date(e.date).getMonth()===month&&new Date(e.date).getFullYear()===year); if(monthEvents.length===0) eventsContainer.innerHTML='<div class="text-[9px] text-gray-600 text-center font-mono py-1">// No anomalies cataloged</div>'; else eventsContainer.innerHTML=monthEvents.map(ev=>`<div class="flex justify-between items-center bg-black/40 px-1.5 py-0.5 rounded border border-gray-900"><span class="text-[10px] text-gray-300 truncate w-44">${ev.title} <b class="text-blue-500 font-mono text-[8px]">(${ev.date.substring(5)})</b></span><button onclick="deleteEventById(${ev.id})" class="text-gray-600 hover:text-red-400"><i data-lucide="x" class="w-2.5 h-2.5"></i></button></div>`).join(''); }
+        function selectEventDate(date) { selectedEventDate=date; document.getElementById('newEventTitle').placeholder=`Log to: ${date}`; }
+        function addMergedEvent() { const title=document.getElementById('newEventTitle').value.trim(); if(title&&selectedEventDate){ events.push({ id:Date.now(), date:selectedEventDate, title:title }); fullRender(); } }
+        function deleteEventById(id) { events=events.filter(e=>e.id!==id); fullRender(); }
+        function prevMonth() { currentCalendarDate.setMonth(currentCalendarDate.getMonth()-1); fullRender(); }
+        function nextMonth() { currentCalendarDate.setMonth(currentCalendarDate.getMonth()+1); fullRender(); }
+        function renderHardware() { const container=document.getElementById('hardwareList'); if(!container) return; container.innerHTML=hardware.map((h,index)=>`<div class="bg-black/50 p-1.5 rounded-md border border-gray-900 text-[11px] space-y-0.5"><div class="text-[8px] font-mono text-cyan-400 uppercase tracking-wider">${escapeHtml(h.type)}</div><input type="text" value="${escapeHtml(h.name)}" onchange="updateHardwareName(${h.id}, this.value)" class="w-full bg-transparent border-none text-[11px] font-semibold text-gray-200 p-0 focus:ring-0"><div class="text-[9px] font-mono text-gray-500">${escapeHtml(h.note)}</div></div>`).join(''); }
+        function updateHardwareName(id,value) { const device=hardware.find(h=>h.id===id); if(device){ device.name=value; debouncedSync(); } }
+        function renderMatrix() { const container=document.getElementById('matrixLinksList'); if(!container) return; container.innerHTML=''; matrix.forEach((m,idx)=>{ const wrapper=document.createElement('div'); wrapper.className='bg-black/50 p-2 rounded-lg border border-gray-900 space-y-1 text-[11px]'; wrapper.innerHTML=`<input type="text" value="${escapeHtml(m.title)}" onchange="updateMatrixNode(${m.id}, 'title', this.value)" class="font-bold text-fuchsia-400 bg-transparent border-none p-0 focus:ring-0 text-[11px] w-full"><input type="text" value="${escapeHtml(m.sub)}" onchange="updateMatrixNode(${m.id}, 'sub', this.value)" class="text-gray-500 text-[9px] font-mono bg-transparent border-none p-0 focus:ring-0 w-full"><div class="flex items-center gap-1 text-[9px] text-blue-400 bg-black/40 px-1 py-0.5 rounded border border-gray-900/60 mt-1"><i data-lucide="link" class="w-2.5 h-2.5"></i><input type="text" value="${escapeHtml(m.url)}" onchange="updateMatrixNode(${m.id}, 'url', this.value)" class="bg-transparent border-none p-0 focus:ring-0 text-[9px] font-mono text-blue-500 w-full"></div>`; container.appendChild(wrapper); }); }
+        function updateMatrixNode(id,field,value) { const node=matrix.find(m=>m.id===id); if(node){ node[field]=value; debouncedSync(); } }
+        function renderLiveSummary() { let total=0; ['backlog','inprogress','done'].forEach(k=>{ if(tasks[k]) total+=tasks[k].length; }); const summary=document.getElementById('liveSummary'); if(summary) summary.innerHTML=`<div>COLUMNS TOTAL: ${total}</div><div>· SYSTEM ALERTS: ${reminders.length}</div><div>· EXCEPTIONS RECORDED: ${events.length}</div>`; }
+        function copyWorkflowSnapshot() { let total=0; ['backlog','inprogress','done'].forEach(k=>{ if(tasks[k]) total+=tasks[k].length; }); const snapshotStr=`IDEV WORKSPACE\nTasks Active: ${total}\nAlert Matrix: ${reminders.length}\nChrono Clusters: ${events.length}`; navigator.clipboard.writeText(snapshotStr); alert("System snapshot mapped to clip layout."); }
+        function resetAllWorkspace() { if(confirm("Purge local layout caches?")) { workspace = { tasks:{ backlog:[], inprogress:[], done:[] }, columnNames:{ backlog:"📋  backlog:", inprogress:"⚙️ inprogress:", done:"✅ done" }, reminders:[], timers:[], events:[{ id:Date.now(), date:"2026-05-26", title:"System Refreshed Successfully" }], notes:"", hardware:[{ id:1, type:"Core Terminal", name:"ASUS Vivobook 16X", note:"Ryzen 7 // RTX Architecture Node" },{ id:2, type:"Mobile Interface", name:"Samsung Galaxy A17", note:"CODM High Sensitivity Workspace Mapping" },{ id:3, type:"Visual Pipeline", name:"LG 32\" Display", note:"Vertical Orientation Mount Array" }], matrix:[{ id:1, title:"TAI Group Hub", sub:"Ahmad / Taoheed alignment matrix", url:"#" },{ id:2, title:"Multi-Tenancy Core", sub:"Centralized application services", url:"#" },{ id:3, title:"Web3 Sandbox", sub:"Solidity architecture nodes", url:"#" },{ id:4, title:"Gaming Logs", sub:"EA FC 26 / Naruto Storm 5", url:"#" }] }; syncLocalRefs(); if(document.getElementById('globalNotes')) document.getElementById('globalNotes').value=""; fullRender(); } }
+        function exportAllData() { const dataDump=JSON.stringify(workspace,null,2); const blob=new Blob([dataDump],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='idev_architect_backup.json'; a.click(); }
+        function escapeHtml(str) { return String(str).replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 
-        function deleteTask(stage, idx) {
-            if (workspace.tasks[stage]) {
-                workspace.tasks[stage].splice(idx, 1);
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function addReminder() {
-            const text = prompt('Reminder text:');
-            if (text) {
-                if (!workspace.reminders) workspace.reminders = [];
-                workspace.reminders.push({ id: Date.now(), text, datetime: new Date().toISOString() });
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function deleteReminder(idx) {
-            if (workspace.reminders) {
-                workspace.reminders.splice(idx, 1);
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function addEvent() {
-            const title = document.getElementById('newEventTitle')?.value.trim();
-            const date = document.getElementById('newEventDate')?.value;
-            if (title) {
-                if (!workspace.events) workspace.events = [];
-                workspace.events.push({ id: Date.now(), title, date: date || new Date().toISOString().split('T')[0] });
-                document.getElementById('newEventTitle').value = '';
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function deleteEvent(idx) {
-            if (workspace.events) {
-                workspace.events.splice(idx, 1);
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function addHardware() {
-            const name = document.getElementById('newHardwareName')?.value.trim();
-            const type = document.getElementById('newHardwareType')?.value.trim();
-            if (name) {
-                if (!workspace.hardware) workspace.hardware = [];
-                workspace.hardware.push({ id: Date.now(), name, type: type || 'Device' });
-                document.getElementById('newHardwareName').value = '';
-                document.getElementById('newHardwareType').value = '';
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function deleteHardware(idx) {
-            if (workspace.hardware) {
-                workspace.hardware.splice(idx, 1);
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function addLink() {
-            const title = document.getElementById('newLinkTitle')?.value.trim();
-            const url = document.getElementById('newLinkUrl')?.value.trim();
-            if (title && url) {
-                if (!workspace.matrix) workspace.matrix = [];
-                workspace.matrix.push({ id: Date.now(), title, url });
-                document.getElementById('newLinkTitle').value = '';
-                document.getElementById('newLinkUrl').value = '';
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function deleteLink(idx) {
-            if (workspace.matrix) {
-                workspace.matrix.splice(idx, 1);
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function resetAllData() {
-            if (confirm('Reset all data? This cannot be undone.')) {
-                workspace = {
-                    tasks: { backlog: [], inprogress: [], done: [] },
-                    reminders: [],
-                    timers: [],
-                    events: [],
-                    notes: "",
-                    hardware: [],
-                    matrix: []
-                };
-                document.getElementById('globalNotes').value = '';
-                renderAll();
-                debouncedSync();
-                showToast('All data reset', 'info');
-            }
-        }
-
-        function exportData() {
-            const dataStr = JSON.stringify(workspace, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `idev_backup_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast('Data exported', 'success');
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
-        }
-
-        // ============================================
-        // Make functions global for HTML buttons
-        // ============================================
-        window.showAuthModal = showAuthModal;
-        window.closeAuthModal = closeAuthModal;
-        window.handleSignIn = handleSignIn;
-        window.handleSignUp = handleSignUp;
-        window.signOut = signOut;
-        window.manualSync = manualSync;
-        window.resetAllData = resetAllData;
-        window.exportData = exportData;
-        window.addTask = addTask;
-        window.toggleTask = toggleTask;
-        window.moveTask = moveTask;
-        window.deleteTask = deleteTask;
-        window.addReminder = addReminder;
-        window.deleteReminder = deleteReminder;
-        window.addEvent = addEvent;
-        window.deleteEvent = deleteEvent;
-        window.addHardware = addHardware;
-        window.deleteHardware = deleteHardware;
-        window.addLink = addLink;
-        window.deleteLink = deleteLink;
-        window.prevMonth = prevMonth;
-        window.nextMonth = nextMonth;
-        window.selectDate = selectDate;
-        window.debouncedSync = debouncedSync;
-
-        // ============================================
         // Initialize
-        // ============================================
-        supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session) {
-                currentUser = session.user;
-                updateAuthUI();
-                await pullFromCloud();
-                renderAll();
-            } else {
-                currentUser = null;
-                updateAuthUI();
-                loadFromLocal();
-                renderAll();
-            }
-        });
-
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                currentUser = session.user;
-                updateAuthUI();
-                pullFromCloud();
-            } else {
-                loadFromLocal();
-            }
-            renderAll();
-        });
+        loadLocalCache();
+        syncLocalRefs();
+        if(document.getElementById('globalNotes')) document.getElementById('globalNotes').value = workspace.notes || "";
+        fullRender(false);
     </script>
 </body>
 </html>

@@ -8,23 +8,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="icon" type="image/png" href="fav.png">
-    
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #02040A;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(0, 163, 255, 0.14) 0, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.09) 0, transparent 50%);
+            background-image: radial-gradient(at 0% 0%, rgba(0, 163, 255, 0.14) 0, transparent 50%),
+                              radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.09) 0, transparent 50%);
         }
         .glass-panel {
             background: rgba(8, 12, 24, 0.75);
             backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(0, 163, 255, 0.12);
-            box-shadow: 0 12px 36px -12px rgba(0, 0, 0, 0.8);
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.25s ease;
         }
         .task-card {
             background: rgba(0, 0, 0, 0.5);
@@ -39,9 +34,6 @@
             border-left-color: #10B981 !important;
             opacity: 0.6;
         }
-        .timer-active { border-left-color: #10B981; animation: pulse-border 2s infinite; }
-        @keyframes pulse-border { 50% { border-left-color: rgba(16, 185, 129, 0.3); } }
-        
         input, textarea, select {
             background: rgba(0, 0, 0, 0.6) !important;
             border: 1px solid rgba(255, 255, 255, 0.07) !important;
@@ -49,13 +41,7 @@
         input:focus, textarea:focus, select:focus {
             border-color: #00A3FF !important;
             outline: none !important;
-            box-shadow: 0 0 0 2px rgba(0, 163, 255, 0.15) !important;
         }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: #02040A; }
-        ::-webkit-scrollbar-thumb { background: #1A2333; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #00A3FF; }
-        
         .toast {
             position: fixed;
             bottom: 20px;
@@ -68,26 +54,12 @@
             animation: slideIn 0.3s ease-out;
             font-size: 12px;
             font-family: monospace;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
         .toast.error { border-left-color: #ef4444; }
         .toast.success { border-left-color: #10b981; }
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
-        }
-        .debug-panel {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.8);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-family: monospace;
-            z-index: 999;
-            border: 1px solid #333;
-            max-width: 300px;
         }
         .sync-pulse {
             animation: pulse 0.5s ease-in-out 2;
@@ -96,6 +68,13 @@
             0% { opacity: 0.3; transform: scale(1); }
             50% { opacity: 1; transform: scale(1.2); }
             100% { opacity: 0.3; transform: scale(1); }
+        }
+        button {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        button:active {
+            transform: scale(0.98);
         }
     </style>
 </head>
@@ -108,615 +87,685 @@
             </div>
             <div>
                 <h1 class="text-xs font-mono text-gray-500 uppercase tracking-widest">IDEV INC // CLOUD TERMINAL</h1>
-                <h2 class="text-sm font-bold text-white tracking-tight">Welcome Back, Mukhtar</h2>
+                <h2 class="text-sm font-bold text-white tracking-tight">Workflow Portal</h2>
             </div>
         </div>
         
-        <div id="authContainer" class="flex items-center gap-2 text-[10px] font-mono glass-panel px-3 py-1.5 rounded-xl border-dashed">
+        <div id="authContainer" class="flex items-center gap-2 text-[10px] font-mono glass-panel px-3 py-1.5 rounded-xl">
             <div class="flex gap-1.5 items-center">
                 <i data-lucide="cloud-off" class="w-3.5 h-3.5 text-amber-500" id="syncStatusIcon"></i>
                 <input type="email" id="authEmail" placeholder="Email" class="px-2 py-0.5 rounded text-[10px] w-28 bg-black">
-                <input type="password" id="authPassword" placeholder="Secret Key" class="px-2 py-0.5 rounded text-[10px] w-24 bg-black">
-                <button onclick="handleCloudSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded hover:bg-blue-600 hover:text-white">Connect</button>
-                <button onclick="handleCloudSignUp()" class="text-gray-500 hover:text-gray-300 text-[9px]">Provision</button>
+                <input type="password" id="authPassword" placeholder="Password" class="px-2 py-0.5 rounded text-[10px] w-24 bg-black">
+                <button onclick="window.handleSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded hover:bg-blue-600">Sign In</button>
+                <button onclick="window.handleSignUp()" class="text-gray-500 hover:text-gray-300 text-[9px]">Sign Up</button>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- Left Panel -->
-        <div class="glass-panel rounded-xl p-3.5 space-y-3.5 flex flex-col justify-between h-[540px]">
+        <div class="glass-panel rounded-xl p-3.5 space-y-3.5 flex flex-col h-[540px]">
             <div>
-                <div class="flex items-center justify-between mb-1.5">
-                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-blue-400"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Chrono Matrix</h2>
-                    <div class="flex items-center gap-1">
-                        <button onclick="prevMonth()" class="p-0.5 hover:bg-gray-900 rounded text-gray-400"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
-                        <span id="monthYearDisplay" class="text-[10px] font-mono text-gray-300 font-bold w-16 text-center"></span>
-                        <button onclick="nextMonth()" class="p-0.5 hover:bg-gray-900 rounded text-gray-400"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
-                    </div>
-                </div>
-                <div id="calendarGrid" class="grid grid-cols-7 gap-0.5 text-[9px] font-mono text-center mb-1.5 bg-black/30 p-1 rounded-lg border border-gray-900"></div>
-                <div id="eventsList" class="max-h-20 overflow-y-auto space-y-1 text-[10px]"></div>
-                <div class="flex gap-1 mt-1.5">
-                    <input type="text" id="newEventTitle" placeholder="Log environment exception..." class="text-[10px] rounded-md px-2 py-1 flex-1">
-                    <button onclick="addMergedEvent()" class="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-[10px] px-2 rounded-md hover:bg-blue-600 hover:text-white transition">Log</button>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-blue-400 mb-2"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Calendar Events</h2>
+                <div id="eventsList" class="space-y-1 max-h-[200px] overflow-y-auto"></div>
+                <div class="flex gap-1 mt-2">
+                    <input type="text" id="newEventTitle" placeholder="New event..." class="text-[10px] rounded-md px-2 py-1 flex-1">
+                    <input type="date" id="newEventDate" class="text-[10px] rounded-md px-2 py-1 w-28">
+                    <button onclick="window.addEvent()" class="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-[10px] px-2 rounded">Add</button>
                 </div>
             </div>
             
             <div class="border-t border-gray-900 pt-2.5">
                 <div class="flex justify-between items-center mb-1">
-                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-purple-400"><i data-lucide="bell" class="w-3.5 h-3.5"></i> Active System Alerts</h2>
-                    <button onclick="quickAddReminder()" class="text-[9px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded hover:bg-purple-500/20 transition">+ Queue</button>
+                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-purple-400"><i data-lucide="bell" class="w-3.5 h-3.5"></i> Reminders</h2>
+                    <button onclick="window.addReminder()" class="text-[9px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">+ Add</button>
                 </div>
-                <div id="reminderList" class="space-y-1 max-h-[90px] overflow-y-auto pr-0.5"></div>
+                <div id="reminderList" class="space-y-1 max-h-[120px] overflow-y-auto"></div>
             </div>
 
             <div class="border-t border-gray-900 pt-2.5">
                 <div class="flex justify-between items-center mb-1.5">
-                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-emerald-400"><i data-lucide="timer" class="w-3.5 h-3.5"></i> Focus Matrices</h2>
+                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-emerald-400"><i data-lucide="timer" class="w-3.5 h-3.5"></i> Timers</h2>
                     <div class="flex gap-1">
-                        <input type="text" id="newTimerNameInput" placeholder="Node title" class="text-[9px] rounded-md px-1.5 py-0.5 w-20 font-mono">
-                        <button onclick="createMergedTimer()" class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 rounded text-[10px] font-bold hover:bg-emerald-500/20">+</button>
+                        <input type="text" id="newTimerName" placeholder="Timer name" class="text-[9px] rounded-md px-1.5 py-0.5 w-20">
+                        <button onclick="window.addTimer()" class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 rounded text-[10px]">+</button>
                     </div>
                 </div>
-                <div id="timersListMerged" class="space-y-1 max-h-[100px] overflow-y-auto pr-0.5"></div>
+                <div id="timerList" class="space-y-1 max-h-[100px] overflow-y-auto"></div>
             </div>
         </div>
 
         <!-- Center Panel: Kanban -->
-        <div class="glass-panel rounded-xl p-3.5 flex flex-col justify-between h-[540px]">
-            <div class="flex flex-col h-[420px]">
-                <div class="flex items-center justify-between mb-2">
-                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-sky-400"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> Workflow Controls</h2>
-                    <span id="taskStatsBadge" class="text-[9px] font-mono bg-gray-950 px-2 py-0.5 rounded border border-gray-900 text-gray-400"></span>
-                </div>
-                <div id="kanbanContainer" class="space-y-3 overflow-y-auto flex-1 pr-0.5"></div>
+        <div class="glass-panel rounded-xl p-3.5 flex flex-col h-[540px]">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-sky-400"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> Kanban Board</h2>
+                <span id="taskStats" class="text-[9px] font-mono bg-gray-950 px-2 py-0.5 rounded border border-gray-900"></span>
             </div>
-
-            <div class="border-t border-gray-900 pt-2.5 space-y-1">
+            <div id="kanbanContainer" class="flex-1 overflow-y-auto space-y-3"></div>
+            
+            <div class="border-t border-gray-900 pt-2.5 mt-2">
                 <div class="flex gap-1">
-                    <input type="text" id="quickTaskTitle" placeholder="Initialize objective..." class="text-[10px] rounded-md px-2 py-1 flex-1">
-                    <select id="quickTaskStage" class="text-[10px] rounded-md px-1 text-gray-300 w-24">
-                        <option value="backlog" id="opt-col1">📋 Backlog</option>
-                        <option value="inprogress" id="opt-col2">⚙️ Inprogress</option>
-                        <option value="done" id="opt-col3">✅ Done</option>
+                    <input type="text" id="newTaskTitle" placeholder="New task..." class="text-[10px] rounded-md px-2 py-1 flex-1">
+                    <select id="newTaskStage" class="text-[10px] rounded-md px-1 text-gray-300 w-24">
+                        <option value="backlog">📋 Backlog</option>
+                        <option value="inprogress">⚙️ In Progress</option>
+                        <option value="done">✅ Done</option>
                     </select>
-                </div>
-                <div class="flex gap-1">
-                    <input type="time" id="quickTaskTime" class="text-[10px] rounded-md px-1.5 text-blue-400 font-mono w-1/4 text-center">
-                    <input type="text" id="quickTaskMeta" placeholder="Context notes/assets..." class="text-[10px] rounded-md px-2 flex-1 text-gray-400">
-                    <button onclick="addMergedTask()" class="bg-sky-600/20 border border-sky-500/30 text-sky-400 px-2 rounded-md text-xs hover:bg-sky-600 hover:text-white transition"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="window.addTask()" class="bg-sky-600/20 border border-sky-500/30 text-sky-400 px-2 rounded text-xs">+</button>
                 </div>
             </div>
         </div>
 
         <!-- Right Panel -->
-        <div class="glass-panel rounded-xl p-3.5 space-y-3 flex flex-col justify-between h-[540px]">
+        <div class="glass-panel rounded-xl p-3.5 space-y-3 flex flex-col h-[540px]">
             <div>
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-amber-400 mb-1.5"><i data-lucide="sticky-note" class="w-3.5 h-3.5"></i> Persistent Scratchpad</h2>
-                <textarea id="globalNotes" rows="3" oninput="debouncedSync()" class="w-full rounded-lg text-[10px] font-mono p-1.5 resize-none placeholder:text-gray-700" placeholder="// Drop immediate code architecture snapshots..."></textarea>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-amber-400 mb-1.5"><i data-lucide="sticky-note" class="w-3.5 h-3.5"></i> Notes</h2>
+                <textarea id="globalNotes" rows="4" oninput="window.debouncedSync()" class="w-full rounded-lg text-[10px] font-mono p-1.5 resize-none" placeholder="Write your notes here..."></textarea>
             </div>
             <div class="border-t border-gray-900 pt-2">
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-cyan-400 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> Hardware Clusters</h2>
-                <div id="hardwareList" class="space-y-1 max-h-[120px] overflow-y-auto pr-0.5"></div>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-cyan-400 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> Hardware</h2>
+                <div id="hardwareList" class="space-y-1 max-h-[120px] overflow-y-auto"></div>
+                <div class="flex gap-1 mt-1">
+                    <input type="text" id="newHardwareName" placeholder="Device name" class="text-[9px] rounded-md px-1.5 py-0.5 flex-1">
+                    <input type="text" id="newHardwareType" placeholder="Type" class="text-[9px] rounded-md px-1.5 py-0.5 w-16">
+                    <button onclick="window.addHardware()" class="bg-cyan-500/10 text-cyan-400 px-1.5 rounded text-[9px]">+</button>
+                </div>
             </div>
             <div class="border-t border-gray-900 pt-2">
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-fuchsia-400 mb-1"><i data-lucide="git-branch" class="w-3.5 h-3.5"></i> Dynamic Structural Matrix</h2>
-                <div id="matrixLinksList" class="space-y-1.5 max-h-[160px] overflow-y-auto pr-0.5"></div>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-fuchsia-400 mb-1"><i data-lucide="link" class="w-3.5 h-3.5"></i> Links</h2>
+                <div id="matrixList" class="space-y-1 max-h-[120px] overflow-y-auto"></div>
+                <div class="flex gap-1 mt-1">
+                    <input type="text" id="newLinkTitle" placeholder="Title" class="text-[9px] rounded-md px-1.5 py-0.5 flex-1">
+                    <input type="text" id="newLinkUrl" placeholder="URL" class="text-[9px] rounded-md px-1.5 py-0.5 flex-1">
+                    <button onclick="window.addLink()" class="bg-fuchsia-500/10 text-fuchsia-400 px-1.5 rounded text-[9px]">+</button>
+                </div>
             </div>
         </div>
     </main>
 
-    <div id="txtModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-        <div class="glass-panel rounded-xl w-full max-w-lg p-4 space-y-3 border border-blue-500/30 flex flex-col h-[400px]">
-            <div class="flex justify-between items-center border-b border-gray-900 pb-2">
-                <div class="flex items-center gap-2 text-blue-400">
-                    <i data-lucide="file-text" class="w-4 h-4"></i>
-                    <span id="modalFileName" class="text-xs font-mono font-bold text-gray-200">file_sandbox.txt</span>
-                </div>
-                <button onclick="closeTxtModal()" class="text-gray-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-            </div>
-            <textarea id="modalTextContent" readonly class="w-full flex-1 bg-black/40 border border-gray-900 rounded-lg p-2.5 font-mono text-[11px] text-gray-300 resize-none focus:outline-none"></textarea>
-            <div class="flex justify-end gap-2">
-                <button onclick="closeTxtModal()" class="bg-gray-900 border border-gray-800 text-gray-400 px-3 py-1 rounded-md text-xs hover:text-white transition">Close</button>
-            </div>
-        </div>
-    </div>
-
     <footer class="max-w-7xl mx-auto px-4 mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-[10px] font-mono">
         <div class="glass-panel rounded-lg p-2.5 flex justify-between items-center">
             <div id="liveSummary" class="flex gap-4 text-gray-500"></div>
-            <button onclick="copyWorkflowSnapshot()" class="bg-gray-950 border border-gray-800 hover:text-white px-2 py-0.5 rounded transition">Snap</button>
+            <button onclick="window.manualSync()" class="bg-green-600/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded">⟳ Sync Now</button>
         </div>
-        <div class="glass-panel rounded-lg p-2.5 flex items-center justify-between">
-            <span class="text-gray-600">CLOUD SYNC LAYER</span>
+        <div class="glass-panel rounded-lg p-2.5 flex justify-between items-center">
+            <span class="text-gray-600">⚡ Connected to Supabase Cloud</span>
             <div class="flex gap-2">
-                <button onclick="manualSync()" class="text-green-400 hover:text-green-300">⟳ Sync Now</button>
-                <button onclick="resetAllWorkspace()" class="text-red-400 hover:text-red-300">Purge</button>
-                <button onclick="exportAllData()" class="text-blue-400 hover:text-blue-300">Backup</button>
+                <button onclick="window.resetAllData()" class="text-red-400 hover:text-red-300">Reset</button>
+                <button onclick="window.exportData()" class="text-blue-400 hover:text-blue-300">Export</button>
             </div>
         </div>
     </footer>
 
-    <!-- Debug Panel -->
-    <div class="debug-panel" id="debugPanel">
-        <div>🔌 Status: <span id="debugStatus">Not connected</span></div>
-        <div>📡 Last sync: <span id="debugLastSync">Never</span></div>
-        <div>💾 User: <span id="debugUser">None</span></div>
-    </div>
-
     <script>
-        // --- SUPABASE CONFIGURATION ---
-        const SUPABASE_URL = "https://spnxmkzudlkhsboivfax.supabase.co"; 
+        // Make functions globally available
+        window.showToast = showToast;
+        window.handleSignIn = handleSignIn;
+        window.handleSignUp = handleSignUp;
+        window.handleSignOut = handleSignOut;
+        window.addTask = addTask;
+        window.addReminder = addReminder;
+        window.addTimer = addTimer;
+        window.addEvent = addEvent;
+        window.addHardware = addHardware;
+        window.addLink = addLink;
+        window.manualSync = manualSync;
+        window.resetAllData = resetAllData;
+        window.exportData = exportData;
+        window.debouncedSync = debouncedSync;
+        window.toggleTask = toggleTask;
+        window.moveTask = moveTask;
+        window.deleteTask = deleteTask;
+        window.deleteReminder = deleteReminder;
+        window.deleteTimer = deleteTimer;
+        window.deleteEvent = deleteEvent;
+        window.deleteHardware = deleteHardware;
+        window.deleteLink = deleteLink;
+
+        // Supabase config
+        const SUPABASE_URL = "https://spnxmkzudlkhsboivfax.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbnhta3p1ZGxraHNib2l2ZmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjcyNzEsImV4cCI6MjA5NTQwMzI3MX0.pCND95Fg6rWTXYVW90IYKEeEpQkXuO77kMnA5Nbec74";
         
-        let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let authenticatedUser = null;
-        let lastSyncTime = null;
+        let supabase = supabase || window.supabase?.createClient?.(SUPABASE_URL, SUPABASE_ANON_KEY);
+        if (!supabase && window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
         
-        // --- WORKSPACE STATE ---
+        let currentUser = null;
+        let syncTimer = null;
+        
+        // Workspace data structure (matches SQL schema)
         let workspace = {
             tasks: { backlog: [], inprogress: [], done: [] },
-            columnNames: { backlog: "📋 backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" },
+            columnNames: { backlog: "📋 Backlog", inprogress: "⚙️ In Progress", done: "✅ Done" },
             reminders: [],
             timers: [],
             events: [],
             notes: "",
-            hardware: [
-                { id: 1, type: "Core Terminal", name: "ASUS Vivobook 16X", note: "Ryzen 7 // RTX Architecture Node" },
-                { id: 2, type: "Mobile Interface", name: "Samsung Galaxy A17", note: "CODM High Sensitivity Workspace Mapping" },
-                { id: 3, type: "Visual Pipeline", name: "LG 32\" Display", note: "Vertical Orientation Mount Array" }
-            ],
-            matrix: [
-                { id: 1, title: "TAI Group Hub", sub: "Ahmad / Taoheed alignment matrix", url: "#" },
-                { id: 2, title: "Multi-Tenancy Core", sub: "Centralized application services", url: "#" },
-                { id: 3, title: "Web3 Sandbox", sub: "Solidity architecture nodes", url: "#" },
-                { id: 4, title: "Gaming Logs", sub: "EA FC 26 / Naruto Storm 5", url: "#" }
-            ]
+            hardware: [],
+            matrix: []
         };
 
-        let tasks = workspace.tasks;
-        let columnNames = workspace.columnNames;
-        let reminders = workspace.reminders;
-        let timers = workspace.timers;
-        let events = workspace.events;
-        let hardware = workspace.hardware;
-        let matrix = workspace.matrix;
-
-        function showToast(message, type = 'info') {
+        // Helper functions
+        function showToast(msg, type = 'info') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `<span>${type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️'} ${message}</span>`;
+            toast.innerHTML = type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : 'ℹ️ ';
+            toast.innerHTML += msg;
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
+            setTimeout(() => toast.remove(), 3000);
         }
 
-        function updateDebug() {
-            document.getElementById('debugStatus').innerText = authenticatedUser ? '✅ Connected' : '❌ Not connected';
-            document.getElementById('debugUser').innerText = authenticatedUser ? authenticatedUser.email : 'None';
-            document.getElementById('debugLastSync').innerText = lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString() : 'Never';
-        }
-
-        // --- DATABASE SETUP HELPER ---
-        async function setupDatabase() {
-            if (!authenticatedUser) return;
-            showToast("Checking database setup...", "info");
-            
-            // Try to create the table using Supabase's REST API
-            const sql = `
-                CREATE TABLE IF NOT EXISTS public.user_workspaces (
-                    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-                    user_id uuid REFERENCES auth.users NOT NULL,
-                    data jsonb DEFAULT '{}'::jsonb,
-                    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-                    UNIQUE(user_id)
-                );
-                ALTER TABLE public.user_workspaces ENABLE ROW LEVEL SECURITY;
-                DROP POLICY IF EXISTS "Users can view their own workspace" ON public.user_workspaces;
-                DROP POLICY IF EXISTS "Users can insert their own workspace" ON public.user_workspaces;
-                DROP POLICY IF EXISTS "Users can update their own workspace" ON public.user_workspaces;
-                CREATE POLICY "Users can view their own workspace" ON public.user_workspaces FOR SELECT USING (auth.uid() = user_id);
-                CREATE POLICY "Users can insert their own workspace" ON public.user_workspaces FOR INSERT WITH CHECK (auth.uid() = user_id);
-                CREATE POLICY "Users can update their own workspace" ON public.user_workspaces FOR UPDATE USING (auth.uid() = user_id);
-            `;
-            
-            // Note: This requires admin privileges - you need to run the schema.sql in Supabase SQL editor manually
-            console.log("Please run the schema.sql in your Supabase SQL editor");
-            showToast("Please run schema.sql in Supabase SQL editor first", "error");
-        }
-
-        // --- CLOUD SYNC ---
-        async function pushToCloud() {
-            if (!authenticatedUser) {
-                console.log("No user, skipping push");
-                return false;
+        function updateUI() {
+            const icon = document.getElementById('syncStatusIcon');
+            if (icon) {
+                icon.setAttribute('data-lucide', currentUser ? 'cloud' : 'cloud-off');
             }
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+
+        // Cloud sync functions
+        async function pushToCloud() {
+            if (!currentUser || !supabase) return;
             
             try {
-                // Update local refs first
-                workspace.notes = document.getElementById('globalNotes')?.value || "";
-                syncLocalRefs();
-                
-                // Upsert the workspace data
-                const { data, error } = await supabaseClient
+                const { error } = await supabase
                     .from('user_workspaces')
                     .upsert({
-                        user_id: authenticatedUser.id,
+                        user_id: currentUser.id,
                         data: workspace,
                         updated_at: new Date().toISOString()
-                    }, {
-                        onConflict: 'user_id'
-                    });
+                    }, { onConflict: 'user_id' });
                 
-                if (error) {
-                    console.error("Push error:", error);
-                    showToast(`Push failed: ${error.message}`, "error");
-                    return false;
-                }
+                if (error) throw error;
                 
-                console.log("✅ Pushed to cloud:", workspace.tasks.backlog.length, "tasks");
-                showToast("Changes saved to cloud", "success");
-                lastSyncTime = Date.now();
-                updateDebug();
-                
-                // Animate icon
                 const icon = document.getElementById('syncStatusIcon');
-                if (icon) icon.classList.add('sync-pulse');
-                setTimeout(() => icon?.classList.remove('sync-pulse'), 500);
-                
-                return true;
+                if (icon) {
+                    icon.classList.add('sync-pulse');
+                    setTimeout(() => icon.classList.remove('sync-pulse'), 500);
+                }
+                console.log('✅ Synced to cloud');
             } catch (err) {
-                console.error("Push exception:", err);
-                showToast(`Push error: ${err.message}`, "error");
-                return false;
+                console.error('Push error:', err);
+                showToast('Sync failed: ' + err.message, 'error');
             }
         }
 
         async function pullFromCloud() {
-            if (!authenticatedUser) {
-                console.log("No user, skipping pull");
-                return false;
-            }
+            if (!currentUser || !supabase) return;
             
             try {
-                const { data, error } = await supabaseClient
+                const { data, error } = await supabase
                     .from('user_workspaces')
                     .select('data')
-                    .eq('user_id', authenticatedUser.id)
-                    .maybeSingle();
+                    .eq('user_id', currentUser.id)
+                    .single();
                 
-                if (error) {
-                    console.error("Pull error:", error);
-                    if (error.code === '42P01') {
-                        showToast("Table doesn't exist! Please run schema.sql in Supabase", "error");
-                    }
-                    return false;
-                }
+                if (error && error.code !== 'PGRST116') throw error;
                 
-                if (data && data.data) {
-                    const oldTasksCount = workspace.tasks.backlog.length;
+                if (data?.data) {
                     workspace = data.data;
-                    
-                    // Ensure all required fields exist
-                    if (!workspace.hardware) workspace.hardware = [...hardware];
-                    if (!workspace.matrix) workspace.matrix = [...matrix];
-                    if (!workspace.columnNames) workspace.columnNames = { backlog: "📋 backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" };
+                    // Ensure all required structures exist
+                    if (!workspace.tasks) workspace.tasks = { backlog: [], inprogress: [], done: [] };
+                    if (!workspace.reminders) workspace.reminders = [];
                     if (!workspace.timers) workspace.timers = [];
                     if (!workspace.events) workspace.events = [];
-                    if (!workspace.reminders) workspace.reminders = [];
-                    if (!workspace.tasks) workspace.tasks = { backlog: [], inprogress: [], done: [] };
+                    if (!workspace.hardware) workspace.hardware = [];
+                    if (!workspace.matrix) workspace.matrix = [];
+                    if (workspace.notes === undefined) workspace.notes = "";
                     
-                    syncLocalRefs();
-                    if (document.getElementById('globalNotes')) {
-                        document.getElementById('globalNotes').value = workspace.notes || "";
-                    }
-                    
-                    fullRender(false);
-                    console.log(`✅ Pulled from cloud: ${oldTasksCount} -> ${workspace.tasks.backlog.length} tasks`);
-                    showToast("Synced from cloud", "success");
-                    lastSyncTime = Date.now();
-                    updateDebug();
-                    return true;
-                } else {
-                    // No data yet, create initial record
-                    console.log("No existing data, creating initial record");
-                    await pushToCloud();
-                    return true;
+                    const notesEl = document.getElementById('globalNotes');
+                    if (notesEl) notesEl.value = workspace.notes || "";
+                    renderAll();
+                    console.log('✅ Pulled from cloud');
+                    showToast('Synced from cloud', 'success');
                 }
             } catch (err) {
-                console.error("Pull exception:", err);
-                showToast(`Pull error: ${err.message}`, "error");
-                return false;
+                console.error('Pull error:', err);
             }
         }
 
-        async function manualSync() {
-            if (!authenticatedUser) {
-                showToast("Please sign in first", "error");
+        function debouncedSync() {
+            const notesEl = document.getElementById('globalNotes');
+            if (notesEl) {
+                workspace.notes = notesEl.value;
+            }
+            saveToLocal();
+            if (currentUser) {
+                clearTimeout(syncTimer);
+                syncTimer = setTimeout(() => pushToCloud(), 1500);
+            }
+        }
+
+        function manualSync() {
+            if (!currentUser) {
+                showToast('Please sign in first', 'error');
                 return;
             }
-            showToast("Syncing...", "info");
-            await pushToCloud();
-            await pullFromCloud();
+            showToast('Syncing...', 'info');
+            pushToCloud().then(() => pullFromCloud());
         }
 
-        function syncLocalRefs() {
-            tasks = workspace.tasks;
-            columnNames = workspace.columnNames;
-            reminders = workspace.reminders;
-            timers = workspace.timers;
-            events = workspace.events;
-            hardware = workspace.hardware;
-            matrix = workspace.matrix;
+        // Local storage backup
+        function saveToLocal() {
+            localStorage.setItem('idev_workspace', JSON.stringify(workspace));
         }
 
-        function saveLocalCache() {
-            localStorage.setItem('idev_workspace_v2', JSON.stringify(workspace));
-        }
-
-        function loadLocalCache() {
-            const cached = localStorage.getItem('idev_workspace_v2');
-            if (cached) {
+        function loadFromLocal() {
+            const saved = localStorage.getItem('idev_workspace');
+            if (saved) {
                 try {
-                    const parsed = JSON.parse(cached);
-                    workspace = parsed;
-                    syncLocalRefs();
-                    if (document.getElementById('globalNotes')) {
-                        document.getElementById('globalNotes').value = workspace.notes || "";
-                    }
-                    console.log("Loaded from local cache");
-                } catch(e) { console.error("Cache load error:", e); }
+                    workspace = JSON.parse(saved);
+                    const notesEl = document.getElementById('globalNotes');
+                    if (notesEl) notesEl.value = workspace.notes || "";
+                    renderAll();
+                } catch(e) {
+                    console.error('Error loading from local:', e);
+                }
             }
         }
 
-        // --- AUTO-SYNC DEBOUNCE ---
-        let syncDebounceTimer;
-        function debouncedSync() {
-            workspace.notes = document.getElementById('globalNotes')?.value || "";
-            syncLocalRefs();
-            saveLocalCache();
-            
-            if (!authenticatedUser) return;
-            
-            clearTimeout(syncDebounceTimer);
-            syncDebounceTimer = setTimeout(() => {
-                pushToCloud();
-            }, 2000);
-        }
-
-        // --- RENDER FUNCTIONS ---
-        function fullRender(shouldPush = true) {
-            syncLocalRefs();
+        // Render all UI components
+        function renderAll() {
             renderKanban();
             renderReminders();
             renderTimers();
-            renderCalendar();
+            renderEvents();
             renderHardware();
-            renderMatrix();
-            updateTaskStats();
-            renderLiveSummary();
-            if (window.lucide) lucide.createIcons();
+            renderLinks();
+            updateStats();
             
-            saveLocalCache();
-            if (shouldPush && authenticatedUser) {
-                debouncedSync();
+            if (window.lucide) {
+                lucide.createIcons();
             }
         }
 
-        // --- KANBAN RENDER ---
         function renderKanban() {
             const container = document.getElementById('kanbanContainer');
             if (!container) return;
             container.innerHTML = '';
             
             const stages = ['backlog', 'inprogress', 'done'];
-            const stageTitles = { backlog: '📋 Backlog', inprogress: '⚙️ In Progress', done: '✅ Done' };
+            const titles = { backlog: '📋 Backlog', inprogress: '⚙️ In Progress', done: '✅ Done' };
             
-            stages.forEach(key => {
+            stages.forEach(stage => {
                 const column = document.createElement('div');
-                column.className = 'space-y-2 mb-4';
+                column.className = 'bg-black/20 rounded-lg p-2';
                 column.innerHTML = `
-                    <div class="flex justify-between items-center px-1">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">${stageTitles[key]}</span>
-                        <span class="text-[10px] text-gray-500">${tasks[key]?.length || 0}</span>
+                    <div class="flex justify-between items-center mb-2 px-1">
+                        <span class="text-xs font-bold text-gray-400">${titles[stage]}</span>
+                        <span class="text-[10px] text-gray-500">${workspace.tasks[stage]?.length || 0}</span>
                     </div>
-                    <div class="space-y-1.5" id="column-${key}"></div>
+                    <div class="space-y-1.5" id="tasks-${stage}"></div>
                 `;
-                const tasksContainer = column.querySelector(`#column-${key}`);
                 
-                if (tasks[key] && tasks[key].length > 0) {
-                    tasks[key].forEach((task, idx) => {
-                        const taskEl = document.createElement('div');
-                        taskEl.className = `task-card p-2 rounded-md text-[11px] ${task.completed ? 'task-completed' : ''}`;
-                        taskEl.innerHTML = `
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2">
-                                        <input type="checkbox" ${task.completed ? 'checked' : ''} 
-                                               onchange="toggleTaskComplete('${key}', ${idx}, this.checked)" 
-                                               class="w-3 h-3 rounded">
-                                        <span class="${task.completed ? 'line-through text-gray-500' : 'text-gray-200'} font-medium">${escapeHtml(task.title)}</span>
-                                    </div>
-                                    ${task.meta ? `<div class="text-[9px] text-gray-500 mt-0.5 ml-5">${escapeHtml(task.meta)}</div>` : ''}
+                const tasksContainer = column.querySelector(`#tasks-${stage}`);
+                const stageTasks = workspace.tasks[stage] || [];
+                stageTasks.forEach((task, idx) => {
+                    const taskDiv = document.createElement('div');
+                    taskDiv.className = `task-card p-2 rounded-md text-[11px] ${task.completed ? 'task-completed' : ''}`;
+                    taskDiv.innerHTML = `
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                                           onchange="window.toggleTask('${stage}', ${idx}, this.checked)" class="w-3 h-3">
+                                    <span class="${task.completed ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(task.title)}</span>
                                 </div>
-                                <div class="flex gap-1">
-                                    ${key !== 'backlog' ? `<button onclick="moveTask('${key}', ${idx}, 'left')" class="text-gray-500 hover:text-white">←</button>` : ''}
-                                    ${key !== 'done' ? `<button onclick="moveTask('${key}', ${idx}, 'right')" class="text-gray-500 hover:text-white">→</button>` : ''}
-                                    <button onclick="deleteTask('${key}', ${idx})" class="text-gray-500 hover:text-red-400">✕</button>
-                                </div>
+                                ${task.meta ? `<div class="text-[9px] text-gray-500 mt-0.5 ml-5">${escapeHtml(task.meta)}</div>` : ''}
                             </div>
-                        `;
-                        tasksContainer.appendChild(taskEl);
-                    });
-                } else {
-                    tasksContainer.innerHTML = '<div class="text-[10px] text-gray-600 text-center py-2">Empty</div>';
-                }
+                            <div class="flex gap-1">
+                                ${stage !== 'backlog' ? `<button onclick="window.moveTask('${stage}', ${idx}, 'left')" class="text-gray-500 hover:text-white">←</button>` : ''}
+                                ${stage !== 'done' ? `<button onclick="window.moveTask('${stage}', ${idx}, 'right')" class="text-gray-500 hover:text-white">→</button>` : ''}
+                                <button onclick="window.deleteTask('${stage}', ${idx})" class="text-gray-500 hover:text-red-400">✕</button>
+                            </div>
+                        </div>
+                    `;
+                    tasksContainer.appendChild(taskDiv);
+                });
+                
                 container.appendChild(column);
             });
         }
 
-        function toggleTaskComplete(stage, idx, checked) {
-            if (tasks[stage] && tasks[stage][idx]) {
-                tasks[stage][idx].completed = checked;
-                fullRender();
-            }
-        }
-
-        function moveTask(stage, idx, direction) {
-            const stages = ['backlog', 'inprogress', 'done'];
-            const currentIdx = stages.indexOf(stage);
-            let newIdx = direction === 'left' ? currentIdx - 1 : currentIdx + 1;
-            if (newIdx < 0 || newIdx >= stages.length) return;
-            
-            const task = tasks[stage][idx];
-            tasks[stage].splice(idx, 1);
-            tasks[stages[newIdx]].push(task);
-            fullRender();
-        }
-
-        function deleteTask(stage, idx) {
-            tasks[stage].splice(idx, 1);
-            fullRender();
-        }
-
-        function addMergedTask() {
-            const title = document.getElementById('quickTaskTitle')?.value.trim();
-            const stage = document.getElementById('quickTaskStage')?.value || 'backlog';
-            const meta = document.getElementById('quickTaskMeta')?.value.trim();
-            
-            if (title) {
-                tasks[stage].push({
-                    title: title,
-                    meta: meta || '',
-                    completed: stage === 'done',
-                    time: new Date().toLocaleTimeString()
-                });
-                document.getElementById('quickTaskTitle').value = '';
-                document.getElementById('quickTaskMeta').value = '';
-                fullRender();
-            }
-        }
-
-        function updateTaskStats() {
-            let total = 0, completed = 0;
-            ['backlog', 'inprogress', 'done'].forEach(key => {
-                if (tasks[key]) {
-                    total += tasks[key].length;
-                    completed += tasks[key].filter(t => t.completed).length;
-                }
-            });
-            const badge = document.getElementById('taskStatsBadge');
-            if (badge) badge.innerText = `${completed}/${total}`;
-        }
-
-        // --- SIMPLE RENDERERS ---
         function renderReminders() {
             const container = document.getElementById('reminderList');
             if (!container) return;
-            if (!reminders.length) {
-                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No alerts</div>';
+            if (!workspace.reminders || workspace.reminders.length === 0) {
+                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No reminders</div>';
                 return;
             }
-            container.innerHTML = reminders.map((r, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1 rounded">
-                    <span class="truncate flex-1">${escapeHtml(r.text)}</span>
-                    <button onclick="deleteReminder(${i})" class="text-red-400 ml-2">✕</button>
+            container.innerHTML = workspace.reminders.map((r, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
+                    <span>${escapeHtml(r.text)}</span>
+                    <button onclick="window.deleteReminder(${i})" class="text-red-400">✕</button>
                 </div>
             `).join('');
-        }
-
-        function quickAddReminder() {
-            const text = prompt("Alert message:");
-            if (text) {
-                reminders.push({ id: Date.now(), text: text, datetime: new Date().toISOString() });
-                fullRender();
-            }
-        }
-
-        function deleteReminder(idx) {
-            reminders.splice(idx, 1);
-            fullRender();
         }
 
         function renderTimers() {
-            const container = document.getElementById('timersListMerged');
+            const container = document.getElementById('timerList');
             if (!container) return;
-            if (!timers.length) {
+            if (!workspace.timers || workspace.timers.length === 0) {
                 container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No timers</div>';
                 return;
             }
-            container.innerHTML = timers.map(t => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1 rounded">
+            container.innerHTML = workspace.timers.map((t, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
                     <span>${escapeHtml(t.name)}: ${Math.floor(t.seconds/60)}:${(t.seconds%60).toString().padStart(2,'0')}</span>
-                    <button onclick="deleteTimer(${t.id})" class="text-red-400">✕</button>
+                    <button onclick="window.deleteTimer(${i})" class="text-red-400">✕</button>
                 </div>
             `).join('');
         }
 
-        function createMergedTimer() {
-            const name = document.getElementById('newTimerNameInput')?.value || "Timer";
-            timers.push({ id: Date.now(), name: name, seconds: 0, isRunning: false });
-            document.getElementById('newTimerNameInput').value = '';
-            fullRender();
-        }
-
-        function deleteTimer(id) {
-            timers = timers.filter(t => t.id !== id);
-            fullRender();
-        }
-
-        function renderCalendar() {
-            const container = document.getElementById('calendarGrid');
-            if (container) container.innerHTML = '<div class="text-center text-[9px] text-gray-500 col-span-7">Calendar View</div>';
+        function renderEvents() {
+            const container = document.getElementById('eventsList');
+            if (!container) return;
+            if (!workspace.events || workspace.events.length === 0) {
+                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No events</div>';
+                return;
+            }
+            container.innerHTML = workspace.events.map((e, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
+                    <div>
+                        <span class="text-blue-400">${e.date || 'No date'}</span>
+                        <span class="ml-2">${escapeHtml(e.title)}</span>
+                    </div>
+                    <button onclick="window.deleteEvent(${i})" class="text-red-400">✕</button>
+                </div>
+            `).join('');
         }
 
         function renderHardware() {
             const container = document.getElementById('hardwareList');
             if (!container) return;
-            container.innerHTML = hardware.map(h => `
-                <div class="bg-black/40 p-1.5 rounded text-[10px]">
-                    <div class="font-bold text-cyan-400">${escapeHtml(h.type)}</div>
-                    <div>${escapeHtml(h.name)}</div>
+            if (!workspace.hardware || workspace.hardware.length === 0) {
+                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No hardware</div>';
+                return;
+            }
+            container.innerHTML = workspace.hardware.map((h, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
+                    <div>
+                        <span class="text-cyan-400">${escapeHtml(h.type)}</span>
+                        <span class="ml-2">${escapeHtml(h.name)}</span>
+                    </div>
+                    <button onclick="window.deleteHardware(${i})" class="text-red-400">✕</button>
                 </div>
             `).join('');
         }
 
-        function renderMatrix() {
-            const container = document.getElementById('matrixLinksList');
+        function renderLinks() {
+            const container = document.getElementById('matrixList');
             if (!container) return;
-            container.innerHTML = matrix.map(m => `
-                <div class="bg-black/40 p-1.5 rounded text-[10px]">
-                    <div class="font-bold text-fuchsia-400">${escapeHtml(m.title)}</div>
-                    <div class="text-gray-500">${escapeHtml(m.sub)}</div>
+            if (!workspace.matrix || workspace.matrix.length === 0) {
+                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No links</div>';
+                return;
+            }
+            container.innerHTML = workspace.matrix.map((l, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
+                    <a href="${escapeHtml(l.url)}" target="_blank" class="text-fuchsia-400 hover:underline truncate flex-1">${escapeHtml(l.title)}</a>
+                    <button onclick="window.deleteLink(${i})" class="text-red-400 ml-2">✕</button>
                 </div>
             `).join('');
         }
 
-        function renderLiveSummary() {
-            let total = 0;
-            ['backlog', 'inprogress', 'done'].forEach(k => { if (tasks[k]) total += tasks[k].length; });
+        function updateStats() {
+            let total = 0, completed = 0;
+            ['backlog', 'inprogress', 'done'].forEach(s => {
+                const tasks = workspace.tasks[s] || [];
+                total += tasks.length;
+                completed += tasks.filter(t => t.completed).length;
+            });
+            const statsEl = document.getElementById('taskStats');
+            if (statsEl) statsEl.innerText = `${completed}/${total} done`;
+            
             const summary = document.getElementById('liveSummary');
-            if (summary) summary.innerHTML = `<div>Tasks: ${total}</div><div>Alerts: ${reminders.length}</div><div>Events: ${events.length}</div>`;
+            if (summary) {
+                summary.innerHTML = `
+                    <div>📋 Tasks: ${total}</div>
+                    <div>🔔 Alerts: ${workspace.reminders?.length || 0}</div>
+                    <div>📅 Events: ${workspace.events?.length || 0}</div>
+                `;
+            }
         }
 
-        function prevMonth() { }
-        function nextMonth() { }
-        function addMergedEvent() { }
-        function copyWorkflowSnapshot() { alert("Snapshot copied"); }
-        function resetAllWorkspace() { if(confirm("Reset all?")) { workspace = { tasks: { backlog: [], inprogress: [], done: [] }, columnNames: { backlog: "📋 backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" }, reminders: [], timers: [], events: [], notes: "", hardware: [], matrix: [] }; fullRender(); } }
-        function exportAllData() { const data = JSON.stringify(workspace); const blob = new Blob([data], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup.json'; a.click(); }
-        function escapeHtml(str) { return String(str || '').replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+        // Actions
+        function addTask() {
+            const title = document.getElementById('newTaskTitle')?.value.trim();
+            const stage = document.getElementById('newTaskStage')?.value;
+            if (title && stage) {
+                if (!workspace.tasks[stage]) workspace.tasks[stage] = [];
+                workspace.tasks[stage].push({ title, meta: '', completed: stage === 'done' });
+                const inputEl = document.getElementById('newTaskTitle');
+                if (inputEl) inputEl.value = '';
+                renderAll();
+                debouncedSync();
+            }
+        }
 
-        // --- AUTH ---
-        function updateCloudUI(isOnline, email) {
+        function toggleTask(stage, idx, checked) {
+            if (workspace.tasks[stage] && workspace.tasks[stage][idx]) {
+                workspace.tasks[stage][idx].completed = checked;
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function moveTask(stage, idx, direction) {
+            const stages = ['backlog', 'inprogress', 'done'];
+            const current = stages.indexOf(stage);
+            const newStage = direction === 'left' ? stages[current - 1] : stages[current + 1];
+            if (!newStage || !workspace.tasks[stage] || !workspace.tasks[stage][idx]) return;
+            
+            const task = workspace.tasks[stage][idx];
+            workspace.tasks[stage].splice(idx, 1);
+            if (!workspace.tasks[newStage]) workspace.tasks[newStage] = [];
+            workspace.tasks[newStage].push(task);
+            renderAll();
+            debouncedSync();
+        }
+
+        function deleteTask(stage, idx) {
+            if (workspace.tasks[stage]) {
+                workspace.tasks[stage].splice(idx, 1);
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function addReminder() {
+            const text = prompt('Reminder text:');
+            if (text) {
+                if (!workspace.reminders) workspace.reminders = [];
+                workspace.reminders.push({ id: Date.now(), text, datetime: new Date().toISOString() });
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function deleteReminder(idx) {
+            if (workspace.reminders) {
+                workspace.reminders.splice(idx, 1);
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function addTimer() {
+            const name = document.getElementById('newTimerName')?.value.trim();
+            if (name) {
+                if (!workspace.timers) workspace.timers = [];
+                workspace.timers.push({ id: Date.now(), name, seconds: 0 });
+                const inputEl = document.getElementById('newTimerName');
+                if (inputEl) inputEl.value = '';
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function deleteTimer(idx) {
+            if (workspace.timers) {
+                workspace.timers.splice(idx, 1);
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function addEvent() {
+            const title = document.getElementById('newEventTitle')?.value.trim();
+            const date = document.getElementById('newEventDate')?.value;
+            if (title) {
+                if (!workspace.events) workspace.events = [];
+                workspace.events.push({ id: Date.now(), title, date: date || new Date().toISOString().split('T')[0] });
+                const inputEl = document.getElementById('newEventTitle');
+                if (inputEl) inputEl.value = '';
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function deleteEvent(idx) {
+            if (workspace.events) {
+                workspace.events.splice(idx, 1);
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function addHardware() {
+            const name = document.getElementById('newHardwareName')?.value.trim();
+            const type = document.getElementById('newHardwareType')?.value.trim();
+            if (name) {
+                if (!workspace.hardware) workspace.hardware = [];
+                workspace.hardware.push({ id: Date.now(), name, type: type || 'Device' });
+                const nameEl = document.getElementById('newHardwareName');
+                const typeEl = document.getElementById('newHardwareType');
+                if (nameEl) nameEl.value = '';
+                if (typeEl) typeEl.value = '';
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function deleteHardware(idx) {
+            if (workspace.hardware) {
+                workspace.hardware.splice(idx, 1);
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function addLink() {
+            const title = document.getElementById('newLinkTitle')?.value.trim();
+            const url = document.getElementById('newLinkUrl')?.value.trim();
+            if (title && url) {
+                if (!workspace.matrix) workspace.matrix = [];
+                workspace.matrix.push({ id: Date.now(), title, url });
+                const titleEl = document.getElementById('newLinkTitle');
+                const urlEl = document.getElementById('newLinkUrl');
+                if (titleEl) titleEl.value = '';
+                if (urlEl) urlEl.value = '';
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function deleteLink(idx) {
+            if (workspace.matrix) {
+                workspace.matrix.splice(idx, 1);
+                renderAll();
+                debouncedSync();
+            }
+        }
+
+        function resetAllData() {
+            if (confirm('Reset all data? This cannot be undone.')) {
+                workspace = {
+                    tasks: { backlog: [], inprogress: [], done: [] },
+                    columnNames: { backlog: "📋 Backlog", inprogress: "⚙️ In Progress", done: "✅ Done" },
+                    reminders: [],
+                    timers: [],
+                    events: [],
+                    notes: "",
+                    hardware: [],
+                    matrix: []
+                };
+                const notesEl = document.getElementById('globalNotes');
+                if (notesEl) notesEl.value = '';
+                renderAll();
+                debouncedSync();
+                showToast('All data reset', 'info');
+            }
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(workspace, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `idev_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Data exported', 'success');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+        }
+
+        // Auth functions
+        async function handleSignUp() {
+            const email = document.getElementById('authEmail')?.value.trim();
+            const password = document.getElementById('authPassword')?.value;
+            if (!email || !password) {
+                showToast('Enter email and password', 'error');
+                return;
+            }
+            if (!supabase) {
+                showToast('Supabase not initialized', 'error');
+                return;
+            }
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) showToast(error.message, 'error');
+            else showToast('Account created! Please sign in.', 'success');
+        }
+
+        async function handleSignIn() {
+            const email = document.getElementById('authEmail')?.value.trim();
+            const password = document.getElementById('authPassword')?.value;
+            if (!email || !password) {
+                showToast('Enter email and password', 'error');
+                return;
+            }
+            if (!supabase) {
+                showToast('Supabase not initialized', 'error');
+                return;
+            }
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) showToast(error.message, 'error');
+            else showToast('Signed in!', 'success');
+        }
+
+        async function handleSignOut() {
+            if (supabase) {
+                await supabase.auth.signOut();
+            }
+        }
+
+        function updateAuthUI(user) {
             const container = document.getElementById('authContainer');
             if (!container) return;
-            if (isOnline) {
+            
+            if (user) {
                 container.innerHTML = `
                     <div class="flex items-center gap-2">
                         <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i>
-                        <span class="text-gray-400 truncate max-w-[110px]">${email}</span>
-                        <button onclick="handleCloudSignOut()" class="text-red-400 border border-red-900/40 bg-red-950/20 px-2 py-0.5 rounded hover:bg-red-900">Disconnect</button>
+                        <span class="text-gray-400 truncate max-w-[110px]">${user.email}</span>
+                        <button onclick="window.handleSignOut()" class="text-red-400 border border-red-900/40 bg-red-950/20 px-2 py-0.5 rounded hover:bg-red-900">Sign Out</button>
                     </div>
                 `;
             } else {
@@ -725,68 +774,47 @@
                         <i data-lucide="cloud-off" class="w-3.5 h-3.5 text-amber-500"></i>
                         <input type="email" id="authEmail" placeholder="Email" class="px-2 py-0.5 rounded text-[10px] w-28 bg-black">
                         <input type="password" id="authPassword" placeholder="Password" class="px-2 py-0.5 rounded text-[10px] w-24 bg-black">
-                        <button onclick="handleCloudSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded">Connect</button>
-                        <button onclick="handleCloudSignUp()" class="text-gray-500 text-[9px]">Sign Up</button>
+                        <button onclick="window.handleSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded">Sign In</button>
+                        <button onclick="window.handleSignUp()" class="text-gray-500 hover:text-gray-300 text-[9px]">Sign Up</button>
                     </div>
                 `;
             }
-            if (window.lucide) lucide.createIcons();
-            updateDebug();
-        }
-
-        async function handleCloudSignUp() {
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
-            if (!email || !password) return showToast("Enter email and password", "error");
-            const { error } = await supabaseClient.auth.signUp({ email, password });
-            if (error) showToast(error.message, "error");
-            else showToast("Account created! Please sign in.", "success");
-        }
-
-        async function handleCloudSignIn() {
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
-            if (!email || !password) return showToast("Enter email and password", "error");
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) showToast(error.message, "error");
-            else showToast("Connected!", "success");
-        }
-
-        async function handleCloudSignOut() {
-            await supabaseClient.auth.signOut();
-            authenticatedUser = null;
-            updateCloudUI(false, null);
-            loadLocalCache();
-            fullRender(false);
-            showToast("Disconnected", "info");
-        }
-
-        // --- INIT ---
-        supabaseClient.auth.onAuthStateChange(async (event, session) => {
-            console.log("Auth event:", event);
-            if (session) {
-                authenticatedUser = session.user;
-                updateCloudUI(true, session.user.email);
-                await pullFromCloud();
-                fullRender(false);
-            } else {
-                authenticatedUser = null;
-                updateCloudUI(false, null);
-                loadLocalCache();
-                fullRender(false);
+            if (window.lucide) {
+                lucide.createIcons();
             }
-        });
+        }
 
-        supabaseClient.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                authenticatedUser = session.user;
-                updateCloudUI(true, session.user.email);
-                pullFromCloud();
-            } else {
-                loadLocalCache();
-                fullRender(false);
-            }
-        });
+        // Auth state listener
+        if (supabase) {
+            supabase.auth.onAuthStateChange(async (event, session) => {
+                if (session) {
+                    currentUser = session.user;
+                    updateAuthUI(currentUser);
+                    await pullFromCloud();
+                } else {
+                    currentUser = null;
+                    updateAuthUI(null);
+                    loadFromLocal();
+                }
+            });
+
+            // Check existing session on load
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session) {
+                    currentUser = session.user;
+                    updateAuthUI(currentUser);
+                    pullFromCloud();
+                } else {
+                    loadFromLocal();
+                }
+                renderAll();
+            });
+        } else {
+            // Fallback if Supabase not loaded
+            loadFromLocal();
+            renderAll();
+            showToast('Supabase not loaded - working offline', 'error');
+        }
     </script>
 </body>
 </html>

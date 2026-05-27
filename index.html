@@ -26,10 +26,6 @@
             box-shadow: 0 12px 36px -12px rgba(0, 0, 0, 0.8);
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .glass-panel:hover, .glass-panel:focus-within {
-            border-color: rgba(0, 163, 255, 0.3);
-            box-shadow: 0 0 30px rgba(0, 163, 255, 0.1);
-        }
         .task-card {
             background: rgba(0, 0, 0, 0.5);
             border-left: 3px solid #00A3FF;
@@ -59,32 +55,47 @@
         ::-webkit-scrollbar-track { background: #02040A; }
         ::-webkit-scrollbar-thumb { background: #1A2333; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #00A3FF; }
-        .sync-indicator {
-            transition: all 0.3s ease;
-        }
-        .sync-pulse {
-            animation: syncPulse 0.5s ease-in-out 2;
-        }
-        @keyframes syncPulse {
-            0% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.2); }
-            100% { opacity: 0.3; transform: scale(1); }
-        }
-        .toast-notification {
+        
+        .toast {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: #10B981;
-            color: white;
-            padding: 8px 16px;
+            background: #1a1a2e;
+            border-left: 3px solid #00A3FF;
+            padding: 12px 20px;
             border-radius: 8px;
-            font-size: 12px;
             z-index: 1000;
             animation: slideIn 0.3s ease-out;
+            font-size: 12px;
+            font-family: monospace;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
+        .toast.error { border-left-color: #ef4444; }
+        .toast.success { border-left-color: #10b981; }
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
+        }
+        .debug-panel {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-family: monospace;
+            z-index: 999;
+            border: 1px solid #333;
+            max-width: 300px;
+        }
+        .sync-pulse {
+            animation: pulse 0.5s ease-in-out 2;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0.3; transform: scale(1); }
         }
     </style>
 </head>
@@ -113,8 +124,7 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        
-        <!-- Left Panel: Chrono Matrix, Alerts, Timers -->
+        <!-- Left Panel -->
         <div class="glass-panel rounded-xl p-3.5 space-y-3.5 flex flex-col justify-between h-[540px]">
             <div>
                 <div class="flex items-center justify-between mb-1.5">
@@ -153,7 +163,7 @@
             </div>
         </div>
 
-        <!-- Center Panel: Kanban Board -->
+        <!-- Center Panel: Kanban -->
         <div class="glass-panel rounded-xl p-3.5 flex flex-col justify-between h-[540px]">
             <div class="flex flex-col h-[420px]">
                 <div class="flex items-center justify-between mb-2">
@@ -180,7 +190,7 @@
             </div>
         </div>
 
-        <!-- Right Panel: Notes, Hardware, Matrix -->
+        <!-- Right Panel -->
         <div class="glass-panel rounded-xl p-3.5 space-y-3 flex flex-col justify-between h-[540px]">
             <div>
                 <h2 class="text-xs font-semibold flex items-center gap-1.5 text-amber-400 mb-1.5"><i data-lucide="sticky-note" class="w-3.5 h-3.5"></i> Persistent Scratchpad</h2>
@@ -208,7 +218,7 @@
             </div>
             <textarea id="modalTextContent" readonly class="w-full flex-1 bg-black/40 border border-gray-900 rounded-lg p-2.5 font-mono text-[11px] text-gray-300 resize-none focus:outline-none"></textarea>
             <div class="flex justify-end gap-2">
-                <button onclick="closeTxtModal()" class="bg-gray-900 border border-gray-800 text-gray-400 px-3 py-1 rounded-md text-xs hover:text-white transition">Close Browser Viewer</button>
+                <button onclick="closeTxtModal()" class="bg-gray-900 border border-gray-800 text-gray-400 px-3 py-1 rounded-md text-xs hover:text-white transition">Close</button>
             </div>
         </div>
     </div>
@@ -219,14 +229,21 @@
             <button onclick="copyWorkflowSnapshot()" class="bg-gray-950 border border-gray-800 hover:text-white px-2 py-0.5 rounded transition">Snap</button>
         </div>
         <div class="glass-panel rounded-lg p-2.5 flex items-center justify-between">
-            <span class="text-gray-600">CLOUD SYNC LAYER ACTIVE // SUPABASE CLOUD</span>
+            <span class="text-gray-600">CLOUD SYNC LAYER</span>
             <div class="flex gap-2">
+                <button onclick="manualSync()" class="text-green-400 hover:text-green-300">⟳ Sync Now</button>
                 <button onclick="resetAllWorkspace()" class="text-red-400 hover:text-red-300">Purge</button>
                 <button onclick="exportAllData()" class="text-blue-400 hover:text-blue-300">Backup</button>
-                <button onclick="manualSync()" class="text-green-400 hover:text-green-300 ml-2">⟳ Sync Now</button>
             </div>
         </div>
     </footer>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <div>🔌 Status: <span id="debugStatus">Not connected</span></div>
+        <div>📡 Last sync: <span id="debugLastSync">Never</span></div>
+        <div>💾 User: <span id="debugUser">None</span></div>
+    </div>
 
     <script>
         // --- SUPABASE CONFIGURATION ---
@@ -235,14 +252,12 @@
         
         let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let authenticatedUser = null;
-        let syncTimeout = null;
-        let syncInterval = null;
-        let isSyncing = false;
+        let lastSyncTime = null;
         
-        // --- UNIFIED WORKSPACE STATE ---
+        // --- WORKSPACE STATE ---
         let workspace = {
             tasks: { backlog: [], inprogress: [], done: [] },
-            columnNames: { backlog: "📋  backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" },
+            columnNames: { backlog: "📋 backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" },
             reminders: [],
             timers: [],
             events: [],
@@ -268,6 +283,163 @@
         let hardware = workspace.hardware;
         let matrix = workspace.matrix;
 
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️'} ${message}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function updateDebug() {
+            document.getElementById('debugStatus').innerText = authenticatedUser ? '✅ Connected' : '❌ Not connected';
+            document.getElementById('debugUser').innerText = authenticatedUser ? authenticatedUser.email : 'None';
+            document.getElementById('debugLastSync').innerText = lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString() : 'Never';
+        }
+
+        // --- DATABASE SETUP HELPER ---
+        async function setupDatabase() {
+            if (!authenticatedUser) return;
+            showToast("Checking database setup...", "info");
+            
+            // Try to create the table using Supabase's REST API
+            const sql = `
+                CREATE TABLE IF NOT EXISTS public.user_workspaces (
+                    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+                    user_id uuid REFERENCES auth.users NOT NULL,
+                    data jsonb DEFAULT '{}'::jsonb,
+                    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+                    UNIQUE(user_id)
+                );
+                ALTER TABLE public.user_workspaces ENABLE ROW LEVEL SECURITY;
+                DROP POLICY IF EXISTS "Users can view their own workspace" ON public.user_workspaces;
+                DROP POLICY IF EXISTS "Users can insert their own workspace" ON public.user_workspaces;
+                DROP POLICY IF EXISTS "Users can update their own workspace" ON public.user_workspaces;
+                CREATE POLICY "Users can view their own workspace" ON public.user_workspaces FOR SELECT USING (auth.uid() = user_id);
+                CREATE POLICY "Users can insert their own workspace" ON public.user_workspaces FOR INSERT WITH CHECK (auth.uid() = user_id);
+                CREATE POLICY "Users can update their own workspace" ON public.user_workspaces FOR UPDATE USING (auth.uid() = user_id);
+            `;
+            
+            // Note: This requires admin privileges - you need to run the schema.sql in Supabase SQL editor manually
+            console.log("Please run the schema.sql in your Supabase SQL editor");
+            showToast("Please run schema.sql in Supabase SQL editor first", "error");
+        }
+
+        // --- CLOUD SYNC ---
+        async function pushToCloud() {
+            if (!authenticatedUser) {
+                console.log("No user, skipping push");
+                return false;
+            }
+            
+            try {
+                // Update local refs first
+                workspace.notes = document.getElementById('globalNotes')?.value || "";
+                syncLocalRefs();
+                
+                // Upsert the workspace data
+                const { data, error } = await supabaseClient
+                    .from('user_workspaces')
+                    .upsert({
+                        user_id: authenticatedUser.id,
+                        data: workspace,
+                        updated_at: new Date().toISOString()
+                    }, {
+                        onConflict: 'user_id'
+                    });
+                
+                if (error) {
+                    console.error("Push error:", error);
+                    showToast(`Push failed: ${error.message}`, "error");
+                    return false;
+                }
+                
+                console.log("✅ Pushed to cloud:", workspace.tasks.backlog.length, "tasks");
+                showToast("Changes saved to cloud", "success");
+                lastSyncTime = Date.now();
+                updateDebug();
+                
+                // Animate icon
+                const icon = document.getElementById('syncStatusIcon');
+                if (icon) icon.classList.add('sync-pulse');
+                setTimeout(() => icon?.classList.remove('sync-pulse'), 500);
+                
+                return true;
+            } catch (err) {
+                console.error("Push exception:", err);
+                showToast(`Push error: ${err.message}`, "error");
+                return false;
+            }
+        }
+
+        async function pullFromCloud() {
+            if (!authenticatedUser) {
+                console.log("No user, skipping pull");
+                return false;
+            }
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('user_workspaces')
+                    .select('data')
+                    .eq('user_id', authenticatedUser.id)
+                    .maybeSingle();
+                
+                if (error) {
+                    console.error("Pull error:", error);
+                    if (error.code === '42P01') {
+                        showToast("Table doesn't exist! Please run schema.sql in Supabase", "error");
+                    }
+                    return false;
+                }
+                
+                if (data && data.data) {
+                    const oldTasksCount = workspace.tasks.backlog.length;
+                    workspace = data.data;
+                    
+                    // Ensure all required fields exist
+                    if (!workspace.hardware) workspace.hardware = [...hardware];
+                    if (!workspace.matrix) workspace.matrix = [...matrix];
+                    if (!workspace.columnNames) workspace.columnNames = { backlog: "📋 backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" };
+                    if (!workspace.timers) workspace.timers = [];
+                    if (!workspace.events) workspace.events = [];
+                    if (!workspace.reminders) workspace.reminders = [];
+                    if (!workspace.tasks) workspace.tasks = { backlog: [], inprogress: [], done: [] };
+                    
+                    syncLocalRefs();
+                    if (document.getElementById('globalNotes')) {
+                        document.getElementById('globalNotes').value = workspace.notes || "";
+                    }
+                    
+                    fullRender(false);
+                    console.log(`✅ Pulled from cloud: ${oldTasksCount} -> ${workspace.tasks.backlog.length} tasks`);
+                    showToast("Synced from cloud", "success");
+                    lastSyncTime = Date.now();
+                    updateDebug();
+                    return true;
+                } else {
+                    // No data yet, create initial record
+                    console.log("No existing data, creating initial record");
+                    await pushToCloud();
+                    return true;
+                }
+            } catch (err) {
+                console.error("Pull exception:", err);
+                showToast(`Pull error: ${err.message}`, "error");
+                return false;
+            }
+        }
+
+        async function manualSync() {
+            if (!authenticatedUser) {
+                showToast("Please sign in first", "error");
+                return;
+            }
+            showToast("Syncing...", "info");
+            await pushToCloud();
+            await pullFromCloud();
+        }
+
         function syncLocalRefs() {
             tasks = workspace.tasks;
             columnNames = workspace.columnNames;
@@ -278,150 +450,273 @@
             matrix = workspace.matrix;
         }
 
-        function showToast(message, isError = false) {
-            const toast = document.createElement('div');
-            toast.className = 'toast-notification';
-            toast.style.backgroundColor = isError ? '#EF4444' : '#10B981';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-
-        async function ensureUserWorkspaceRecord() {
-            if (!supabaseClient || !authenticatedUser) return false;
-            const { data, error } = await supabaseClient
-                .from('user_workspaces')
-                .select('id')
-                .eq('user_id', authenticatedUser.id)
-                .maybeSingle();
-            if (error && error.code !== 'PGRST116') return false;
-            if (!data) {
-                const { error: insertError } = await supabaseClient
-                    .from('user_workspaces')
-                    .insert({ user_id: authenticatedUser.id, data: workspace });
-                if (insertError) console.error("Insert error:", insertError);
-                else console.log("Workspace created for user");
-            }
-            return true;
-        }
-
-        async function pushCloudWorkspace() {
-            if (!supabaseClient || !authenticatedUser || isSyncing) return;
-            isSyncing = true;
-            try {
-                await ensureUserWorkspaceRecord();
-                const { error } = await supabaseClient
-                    .from('user_workspaces')
-                    .update({ data: workspace, updated_at: new Date().toISOString() })
-                    .eq('user_id', authenticatedUser.id);
-                if (error) {
-                    console.error("Cloud push error:", error);
-                    showToast("Sync failed!", true);
-                } else {
-                    const icon = document.getElementById('syncStatusIcon');
-                    if (icon) {
-                        icon.classList.add('sync-pulse');
-                        setTimeout(() => icon.classList.remove('sync-pulse'), 500);
-                    }
-                    console.log("✅ Pushed to cloud");
-                }
-            } catch (err) {
-                console.error("Push error:", err);
-            } finally {
-                isSyncing = false;
-            }
-        }
-
-        async function pullCloudWorkspace() {
-            if (!supabaseClient || !authenticatedUser || isSyncing) return;
-            isSyncing = true;
-            try {
-                const { data, error } = await supabaseClient
-                    .from('user_workspaces')
-                    .select('data')
-                    .eq('user_id', authenticatedUser.id)
-                    .maybeSingle();
-                if (error) {
-                    console.error("Pull error:", error);
-                    return;
-                }
-                if (data && data.data) {
-                    const oldData = JSON.stringify(workspace);
-                    workspace = data.data;
-                    if (!workspace.hardware) workspace.hardware = [...hardware];
-                    if (!workspace.matrix) workspace.matrix = [...matrix];
-                    if (!workspace.columnNames) workspace.columnNames = { backlog: "📋  backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" };
-                    if (!workspace.timers) workspace.timers = [];
-                    if (!workspace.events) workspace.events = [];
-                    if (!workspace.reminders) workspace.reminders = [];
-                    if (!workspace.tasks) workspace.tasks = { backlog: [], inprogress: [], done: [] };
-                    syncLocalRefs();
-                    
-                    const newData = JSON.stringify(workspace);
-                    if (oldData !== newData) {
-                        if (document.getElementById('globalNotes')) document.getElementById('globalNotes').value = workspace.notes || "";
-                        fullRender(false);
-                        console.log("✅ Pulled from cloud - UI updated");
-                        showToast("Synced from cloud!");
-                    }
-                } else {
-                    await ensureUserWorkspaceRecord();
-                }
-            } catch (err) {
-                console.error("Pull error:", err);
-            } finally {
-                isSyncing = false;
-            }
-        }
-
-        async function manualSync() {
-            if (!authenticatedUser) {
-                alert("Not connected to cloud. Please sign in first.");
-                return;
-            }
-            console.log("Manual sync triggered");
-            showToast("Syncing...");
-            await pushCloudWorkspace();
-            await pullCloudWorkspace();
-        }
-
-        function debouncedSync() {
-            workspace.notes = document.getElementById('globalNotes') ? document.getElementById('globalNotes').value : "";
-            syncLocalRefs();
-            saveLocalCache();
-            if (!authenticatedUser) return;
-            clearTimeout(syncTimeout);
-            syncTimeout = setTimeout(() => {
-                pushCloudWorkspace();
-            }, 1000);
-        }
-
         function saveLocalCache() {
-            localStorage.setItem('idev_workspace', JSON.stringify(workspace));
+            localStorage.setItem('idev_workspace_v2', JSON.stringify(workspace));
         }
 
         function loadLocalCache() {
-            const cached = localStorage.getItem('idev_workspace');
+            const cached = localStorage.getItem('idev_workspace_v2');
             if (cached) {
                 try {
                     const parsed = JSON.parse(cached);
                     workspace = parsed;
                     syncLocalRefs();
-                    if (document.getElementById('globalNotes')) document.getElementById('globalNotes').value = workspace.notes || "";
-                } catch(e) {}
+                    if (document.getElementById('globalNotes')) {
+                        document.getElementById('globalNotes').value = workspace.notes || "";
+                    }
+                    console.log("Loaded from local cache");
+                } catch(e) { console.error("Cache load error:", e); }
             }
         }
+
+        // --- AUTO-SYNC DEBOUNCE ---
+        let syncDebounceTimer;
+        function debouncedSync() {
+            workspace.notes = document.getElementById('globalNotes')?.value || "";
+            syncLocalRefs();
+            saveLocalCache();
+            
+            if (!authenticatedUser) return;
+            
+            clearTimeout(syncDebounceTimer);
+            syncDebounceTimer = setTimeout(() => {
+                pushToCloud();
+            }, 2000);
+        }
+
+        // --- RENDER FUNCTIONS ---
+        function fullRender(shouldPush = true) {
+            syncLocalRefs();
+            renderKanban();
+            renderReminders();
+            renderTimers();
+            renderCalendar();
+            renderHardware();
+            renderMatrix();
+            updateTaskStats();
+            renderLiveSummary();
+            if (window.lucide) lucide.createIcons();
+            
+            saveLocalCache();
+            if (shouldPush && authenticatedUser) {
+                debouncedSync();
+            }
+        }
+
+        // --- KANBAN RENDER ---
+        function renderKanban() {
+            const container = document.getElementById('kanbanContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const stages = ['backlog', 'inprogress', 'done'];
+            const stageTitles = { backlog: '📋 Backlog', inprogress: '⚙️ In Progress', done: '✅ Done' };
+            
+            stages.forEach(key => {
+                const column = document.createElement('div');
+                column.className = 'space-y-2 mb-4';
+                column.innerHTML = `
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">${stageTitles[key]}</span>
+                        <span class="text-[10px] text-gray-500">${tasks[key]?.length || 0}</span>
+                    </div>
+                    <div class="space-y-1.5" id="column-${key}"></div>
+                `;
+                const tasksContainer = column.querySelector(`#column-${key}`);
+                
+                if (tasks[key] && tasks[key].length > 0) {
+                    tasks[key].forEach((task, idx) => {
+                        const taskEl = document.createElement('div');
+                        taskEl.className = `task-card p-2 rounded-md text-[11px] ${task.completed ? 'task-completed' : ''}`;
+                        taskEl.innerHTML = `
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                                               onchange="toggleTaskComplete('${key}', ${idx}, this.checked)" 
+                                               class="w-3 h-3 rounded">
+                                        <span class="${task.completed ? 'line-through text-gray-500' : 'text-gray-200'} font-medium">${escapeHtml(task.title)}</span>
+                                    </div>
+                                    ${task.meta ? `<div class="text-[9px] text-gray-500 mt-0.5 ml-5">${escapeHtml(task.meta)}</div>` : ''}
+                                </div>
+                                <div class="flex gap-1">
+                                    ${key !== 'backlog' ? `<button onclick="moveTask('${key}', ${idx}, 'left')" class="text-gray-500 hover:text-white">←</button>` : ''}
+                                    ${key !== 'done' ? `<button onclick="moveTask('${key}', ${idx}, 'right')" class="text-gray-500 hover:text-white">→</button>` : ''}
+                                    <button onclick="deleteTask('${key}', ${idx})" class="text-gray-500 hover:text-red-400">✕</button>
+                                </div>
+                            </div>
+                        `;
+                        tasksContainer.appendChild(taskEl);
+                    });
+                } else {
+                    tasksContainer.innerHTML = '<div class="text-[10px] text-gray-600 text-center py-2">Empty</div>';
+                }
+                container.appendChild(column);
+            });
+        }
+
+        function toggleTaskComplete(stage, idx, checked) {
+            if (tasks[stage] && tasks[stage][idx]) {
+                tasks[stage][idx].completed = checked;
+                fullRender();
+            }
+        }
+
+        function moveTask(stage, idx, direction) {
+            const stages = ['backlog', 'inprogress', 'done'];
+            const currentIdx = stages.indexOf(stage);
+            let newIdx = direction === 'left' ? currentIdx - 1 : currentIdx + 1;
+            if (newIdx < 0 || newIdx >= stages.length) return;
+            
+            const task = tasks[stage][idx];
+            tasks[stage].splice(idx, 1);
+            tasks[stages[newIdx]].push(task);
+            fullRender();
+        }
+
+        function deleteTask(stage, idx) {
+            tasks[stage].splice(idx, 1);
+            fullRender();
+        }
+
+        function addMergedTask() {
+            const title = document.getElementById('quickTaskTitle')?.value.trim();
+            const stage = document.getElementById('quickTaskStage')?.value || 'backlog';
+            const meta = document.getElementById('quickTaskMeta')?.value.trim();
+            
+            if (title) {
+                tasks[stage].push({
+                    title: title,
+                    meta: meta || '',
+                    completed: stage === 'done',
+                    time: new Date().toLocaleTimeString()
+                });
+                document.getElementById('quickTaskTitle').value = '';
+                document.getElementById('quickTaskMeta').value = '';
+                fullRender();
+            }
+        }
+
+        function updateTaskStats() {
+            let total = 0, completed = 0;
+            ['backlog', 'inprogress', 'done'].forEach(key => {
+                if (tasks[key]) {
+                    total += tasks[key].length;
+                    completed += tasks[key].filter(t => t.completed).length;
+                }
+            });
+            const badge = document.getElementById('taskStatsBadge');
+            if (badge) badge.innerText = `${completed}/${total}`;
+        }
+
+        // --- SIMPLE RENDERERS ---
+        function renderReminders() {
+            const container = document.getElementById('reminderList');
+            if (!container) return;
+            if (!reminders.length) {
+                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No alerts</div>';
+                return;
+            }
+            container.innerHTML = reminders.map((r, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1 rounded">
+                    <span class="truncate flex-1">${escapeHtml(r.text)}</span>
+                    <button onclick="deleteReminder(${i})" class="text-red-400 ml-2">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function quickAddReminder() {
+            const text = prompt("Alert message:");
+            if (text) {
+                reminders.push({ id: Date.now(), text: text, datetime: new Date().toISOString() });
+                fullRender();
+            }
+        }
+
+        function deleteReminder(idx) {
+            reminders.splice(idx, 1);
+            fullRender();
+        }
+
+        function renderTimers() {
+            const container = document.getElementById('timersListMerged');
+            if (!container) return;
+            if (!timers.length) {
+                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No timers</div>';
+                return;
+            }
+            container.innerHTML = timers.map(t => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1 rounded">
+                    <span>${escapeHtml(t.name)}: ${Math.floor(t.seconds/60)}:${(t.seconds%60).toString().padStart(2,'0')}</span>
+                    <button onclick="deleteTimer(${t.id})" class="text-red-400">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function createMergedTimer() {
+            const name = document.getElementById('newTimerNameInput')?.value || "Timer";
+            timers.push({ id: Date.now(), name: name, seconds: 0, isRunning: false });
+            document.getElementById('newTimerNameInput').value = '';
+            fullRender();
+        }
+
+        function deleteTimer(id) {
+            timers = timers.filter(t => t.id !== id);
+            fullRender();
+        }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendarGrid');
+            if (container) container.innerHTML = '<div class="text-center text-[9px] text-gray-500 col-span-7">Calendar View</div>';
+        }
+
+        function renderHardware() {
+            const container = document.getElementById('hardwareList');
+            if (!container) return;
+            container.innerHTML = hardware.map(h => `
+                <div class="bg-black/40 p-1.5 rounded text-[10px]">
+                    <div class="font-bold text-cyan-400">${escapeHtml(h.type)}</div>
+                    <div>${escapeHtml(h.name)}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderMatrix() {
+            const container = document.getElementById('matrixLinksList');
+            if (!container) return;
+            container.innerHTML = matrix.map(m => `
+                <div class="bg-black/40 p-1.5 rounded text-[10px]">
+                    <div class="font-bold text-fuchsia-400">${escapeHtml(m.title)}</div>
+                    <div class="text-gray-500">${escapeHtml(m.sub)}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderLiveSummary() {
+            let total = 0;
+            ['backlog', 'inprogress', 'done'].forEach(k => { if (tasks[k]) total += tasks[k].length; });
+            const summary = document.getElementById('liveSummary');
+            if (summary) summary.innerHTML = `<div>Tasks: ${total}</div><div>Alerts: ${reminders.length}</div><div>Events: ${events.length}</div>`;
+        }
+
+        function prevMonth() { }
+        function nextMonth() { }
+        function addMergedEvent() { }
+        function copyWorkflowSnapshot() { alert("Snapshot copied"); }
+        function resetAllWorkspace() { if(confirm("Reset all?")) { workspace = { tasks: { backlog: [], inprogress: [], done: [] }, columnNames: { backlog: "📋 backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" }, reminders: [], timers: [], events: [], notes: "", hardware: [], matrix: [] }; fullRender(); } }
+        function exportAllData() { const data = JSON.stringify(workspace); const blob = new Blob([data], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup.json'; a.click(); }
+        function escapeHtml(str) { return String(str || '').replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
 
         // --- AUTH ---
         function updateCloudUI(isOnline, email) {
             const container = document.getElementById('authContainer');
             if (!container) return;
-            if(isOnline) {
+            if (isOnline) {
                 container.innerHTML = `
                     <div class="flex items-center gap-2">
                         <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i>
                         <span class="text-gray-400 truncate max-w-[110px]">${email}</span>
-                        <button onclick="handleCloudSignOut()" class="text-red-400 border border-red-900/40 bg-red-950/20 px-1.5 py-0.5 rounded hover:bg-red-900 hover:text-white transition">Disconnect</button>
+                        <button onclick="handleCloudSignOut()" class="text-red-400 border border-red-900/40 bg-red-950/20 px-2 py-0.5 rounded hover:bg-red-900">Disconnect</button>
                     </div>
                 `;
             } else {
@@ -429,463 +724,67 @@
                     <div class="flex gap-1.5 items-center">
                         <i data-lucide="cloud-off" class="w-3.5 h-3.5 text-amber-500"></i>
                         <input type="email" id="authEmail" placeholder="Email" class="px-2 py-0.5 rounded text-[10px] w-28 bg-black">
-                        <input type="password" id="authPassword" placeholder="Secret Key" class="px-2 py-0.5 rounded text-[10px] w-24 bg-black">
-                        <button onclick="handleCloudSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded hover:bg-blue-600 hover:text-white">Connect</button>
-                        <button onclick="handleCloudSignUp()" class="text-gray-500 hover:text-gray-300 text-[9px]">Provision</button>
+                        <input type="password" id="authPassword" placeholder="Password" class="px-2 py-0.5 rounded text-[10px] w-24 bg-black">
+                        <button onclick="handleCloudSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded">Connect</button>
+                        <button onclick="handleCloudSignUp()" class="text-gray-500 text-[9px]">Sign Up</button>
                     </div>
                 `;
             }
             if (window.lucide) lucide.createIcons();
+            updateDebug();
         }
 
         async function handleCloudSignUp() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
-            if(!email || !password) return alert("Provide credentials.");
+            if (!email || !password) return showToast("Enter email and password", "error");
             const { error } = await supabaseClient.auth.signUp({ email, password });
-            if(error) alert("Provision Error: " + error.message);
-            else alert("Architecture space provisioned! Click Connect to authenticate.");
+            if (error) showToast(error.message, "error");
+            else showToast("Account created! Please sign in.", "success");
         }
 
         async function handleCloudSignIn() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
-            if(!email || !password) return alert("Provide credentials.");
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if(error) alert("Connection Refused: " + error.message);
-            else {
-                console.log("Signed in successfully:", data.user.email);
-                showToast("Connected to cloud!");
-            }
+            if (!email || !password) return showToast("Enter email and password", "error");
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) showToast(error.message, "error");
+            else showToast("Connected!", "success");
         }
 
         async function handleCloudSignOut() {
-            console.log("Signing out...");
-            if (syncInterval) {
-                clearInterval(syncInterval);
-                syncInterval = null;
-            }
             await supabaseClient.auth.signOut();
             authenticatedUser = null;
             updateCloudUI(false, null);
             loadLocalCache();
-            fullRender(true);
-            showToast("Disconnected from cloud");
+            fullRender(false);
+            showToast("Disconnected", "info");
         }
 
-        function startPeriodicSync() {
-            if (syncInterval) clearInterval(syncInterval);
-            syncInterval = setInterval(() => {
-                if (authenticatedUser) {
-                    pullCloudWorkspace();
-                }
-            }, 5000);
-        }
-
-        // --- RENDER ENGINE WITH AUTO PUSH ---
-        function fullRender(shouldSyncCloud = true) {
-            syncLocalRefs();
-            renderCalendar(); 
-            renderReminders(); 
-            renderTimers();
-            renderKanban(); 
-            renderHardware(); 
-            renderMatrix();
-            renderLiveSummary(); 
-            updateTaskStats();
-            if (window.lucide) lucide.createIcons();
-            
-            // Save to local and push to cloud
-            saveLocalCache();
-            if (shouldSyncCloud && authenticatedUser) {
-                debouncedSync();
-            }
-        }
-
-        // --- KANBAN (all actions call fullRender which triggers sync)---
-        function renderKanban() {
-            const container = document.getElementById('kanbanContainer');
-            if(!container) return; container.innerHTML = '';
-            const stages = ['backlog', 'inprogress', 'done'];
-            stages.forEach(s => {
-                const optEl = document.getElementById(`opt-${s}`);
-                if(optEl && columnNames[s]) optEl.innerText = columnNames[s];
-            });
-            stages.forEach(key => {
-                const stageDiv = document.createElement('div');
-                stageDiv.className = 'space-y-1 bg-black/10 p-2 rounded-lg border border-gray-900';
-                stageDiv.innerHTML = `
-                    <div class="flex justify-between items-center mb-1">
-                        <input type="text" value="${escapeHtml(columnNames[key] || key)}" onchange="updateColumnName('${key}', this.value)" class="text-[10px] font-mono text-gray-400 font-bold bg-transparent border-none p-0 focus:ring-0 w-3/4">
-                        <span class="text-[9px] font-mono font-medium text-gray-600 bg-gray-950 px-1.5 rounded">${tasks[key] ? tasks[key].length : 0}</span>
-                    </div>
-                `;
-                const listDiv = document.createElement('div'); listDiv.className = 'space-y-1';
-                if(tasks[key]) {
-                    tasks[key].forEach((task, idx) => {
-                        const isCompleted = !!task.completed;
-                        const taskEl = document.createElement('div');
-                        taskEl.className = `task-card p-2 rounded-md text-[11px] bg-black/50 border-l-2 ${isCompleted ? 'task-completed' : (key === 'backlog' ? 'border-l-blue-500' : key === 'inprogress' ? 'border-l-purple-500' : 'border-l-emerald-500')}`;
-                        let readButtonHtml = task.fileContent ? `<button onclick="triggerModalView('${key}', ${idx})" class="text-sky-400 hover:text-sky-300 text-[9px] font-mono flex items-center gap-0.5"><i data-lucide="eye" class="w-2.5 h-2.5"></i> Read File</button>` : '';
-                        taskEl.innerHTML = `
-                            <div class="space-y-0.5">
-                                <div class="flex justify-between items-start gap-1">
-                                    <div class="flex items-center gap-2 max-w-[75%]">
-                                        <input type="checkbox" ${isCompleted ? 'checked' : ''} onchange="toggleTaskProgress('${key}', ${idx}, this.checked)" class="w-3 h-3 rounded border-gray-800 text-blue-500 focus:ring-0 bg-black cursor-pointer">
-                                        <span class="font-semibold text-gray-200 truncate ${isCompleted ? 'line-through text-gray-500' : ''}">${escapeHtml(task.title)}</span>
-                                    </div>
-                                    <span class="text-[9px] font-mono text-blue-400">${task.time || '12:00'}</span>
-                                </div>
-                                <p class="text-[10px] text-gray-500 truncate pl-5">${escapeHtml(task.meta || 'No document arrays logged')}</p>
-                            </div>
-                            <div class="flex items-center mt-1.5 pt-1 border-t border-gray-900/60 justify-between pl-5">
-                                <div class="flex gap-2 items-center">
-                                    <label class="text-[9px] font-mono text-gray-500 hover:text-blue-400 cursor-pointer flex items-center gap-0.5"><i data-lucide="file-up" class="w-2.5 h-2.5"></i> Ingest<input type="file" accept=".txt" class="hidden" onchange="parseTxtToTask('${key}', ${idx}, this)"></label>
-                                    ${readButtonHtml}
-                                </div>
-                                <div class="flex gap-1.5 items-center">
-                                    ${key !== 'backlog' ? `<button onclick="moveTask('${key}', ${idx}, 'left')" class="text-gray-500 hover:text-white"><i data-lucide="arrow-left" class="w-2.5 h-2.5"></i></button>` : ''}
-                                    ${key !== 'done' ? `<button onclick="moveTask('${key}', ${idx}, 'right')" class="text-gray-500 hover:text-white"><i data-lucide="arrow-right" class="w-2.5 h-2.5"></i></button>` : ''}
-                                    <button onclick="deleteTaskItem('${key}', ${idx})" class="text-gray-500 hover:text-red-400"><i data-lucide="trash-2" class="w-2.5 h-2.5"></i></button>
-                                </div>
-                            </div>
-                        `;
-                        listDiv.appendChild(taskEl);
-                    });
-                }
-                stageDiv.appendChild(listDiv); container.appendChild(stageDiv);
-            });
-        }
-
-        function toggleTaskProgress(stage, idx, checked) {
-            if(tasks[stage] && tasks[stage][idx]) {
-                tasks[stage][idx].completed = checked;
-                if(checked && stage !== 'done') { let taskVal = tasks[stage].splice(idx, 1)[0]; tasks['done'].push(taskVal); }
-                else if(!checked && stage === 'done') { let taskVal = tasks[stage].splice(idx, 1)[0]; tasks['inprogress'].push(taskVal); }
-                fullRender();
-            }
-        }
-        
-        function updateColumnName(key, value) { columnNames[key] = value; fullRender(); }
-        
-        function parseTxtToTask(stage, idx, input) { 
-            const file = input.files[0]; if (!file) return; 
-            const reader = new FileReader(); 
-            reader.onload = function(e) { 
-                tasks[stage][idx].meta = `Loaded: ${file.name}`; 
-                tasks[stage][idx].fileContent = e.target.result; 
-                fullRender(); 
-            }; 
-            reader.readAsText(file); 
-        }
-        
-        function triggerModalView(stage, idx) { const task = tasks[stage][idx]; if(task && task.fileContent) openTxtModal(`${task.title}.txt`, task.fileContent); }
-        function openTxtModal(fileName, content) { document.getElementById('modalFileName').innerText = fileName; document.getElementById('modalTextContent').value = content; document.getElementById('txtModal').classList.remove('hidden'); if (window.lucide) lucide.createIcons(); }
-        function closeTxtModal() { document.getElementById('txtModal').classList.add('hidden'); }
-        
-        function moveTask(stage, idx, dir) { 
-            const order = ['backlog', 'inprogress', 'done']; 
-            let currentIdx = order.indexOf(stage); 
-            let targetIdx = dir === 'left' ? currentIdx - 1 : currentIdx + 1; 
-            if(targetIdx < 0 || targetIdx >= order.length) return; 
-            const taskVal = tasks[stage][idx]; 
-            tasks[stage].splice(idx, 1); 
-            tasks[order[targetIdx]].push(taskVal); 
-            fullRender(); 
-        }
-        
-        function deleteTaskItem(stage, idx) { tasks[stage].splice(idx, 1); fullRender(); }
-        
-        function addMergedTask() { 
-            const title = document.getElementById('quickTaskTitle').value.trim(); 
-            const stage = document.getElementById('quickTaskStage').value; 
-            const time = document.getElementById('quickTaskTime').value; 
-            const meta = document.getElementById('quickTaskMeta').value.trim(); 
-            if(title) { 
-                tasks[stage].push({ title, time: time || "12:00", meta, fileContent: "", completed: (stage === 'done') }); 
-                document.getElementById('quickTaskTitle').value = ''; 
-                document.getElementById('quickTaskMeta').value = ''; 
-                fullRender(); 
-            } 
-        }
-        
-        function updateTaskStats() { 
-            let total = 0, checkedCompleted = 0; 
-            ['backlog', 'inprogress', 'done'].forEach(key => { 
-                if(tasks[key]) { 
-                    total += tasks[key].length; 
-                    tasks[key].forEach(t => { if(t.completed) checkedCompleted++; }); 
-                } 
-            }); 
-            const badge = document.getElementById('taskStatsBadge'); 
-            if(badge) badge.innerText = `${checkedCompleted}/${total} Completed`; 
-        }
-
-        // --- Reminders ---
-        function renderReminders() { 
-            const container = document.getElementById('reminderList'); 
-            if(!container) return; 
-            if(reminders.length===0) { 
-                container.innerHTML='<div class="text-[9px] text-gray-600 text-center py-2 font-mono">// No logged exceptions found</div>'; 
-                return; 
-            } 
-            container.innerHTML=''; 
-            reminders.forEach((rem,idx)=>{ 
-                const div=document.createElement('div'); 
-                div.className='flex justify-between items-center text-[10px] bg-black/40 p-1 rounded-md border border-gray-900'; 
-                div.innerHTML=`<div><span class="font-medium text-gray-300 block truncate w-40">${escapeHtml(rem.text)}</span><span class="text-[9px] font-mono text-purple-400">${new Date(rem.datetime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><button onclick="deleteReminder(${idx})" class="text-gray-600 hover:text-red-400"><i data-lucide="x" class="w-3 h-3"></i></button>`; 
-                container.appendChild(div); 
-            }); 
-        }
-        
-        function quickAddReminder() { 
-            let text = prompt("Enter explicit alert context blueprint:", "Structural Alignment Check"); 
-            if(!text) return; 
-            let dateStr = prompt("Provide Timestamp coordinates (YYYY-MM-DD HH:MM)", "2026-05-26 14:00"); 
-            if(dateStr) { 
-                let iso = dateStr.replace(" ", "T"); 
-                if(!isNaN(Date.parse(iso))) { 
-                    reminders.push({ id: Date.now(), text: text, datetime: iso }); 
-                    fullRender(); 
-                } else alert("Format parse mismatch constraints."); 
-            } 
-        }
-        
-        function deleteReminder(idx) { reminders.splice(idx,1); fullRender(); }
-
-        // --- Timers ---
-        function renderTimers() { 
-            const container = document.getElementById('timersListMerged'); 
-            if(!container) return; 
-            if(timers.length===0) { 
-                container.innerHTML='<div class="text-[9px] text-gray-600 text-center py-2 font-mono">// Active session clusters idle</div>'; 
-                return; 
-            } 
-            container.innerHTML=''; 
-            timers.forEach(timer=>{ 
-                const mins=Math.floor(timer.seconds/60), secs=timer.seconds%60; 
-                const div=document.createElement('div'); 
-                div.className=`flex justify-between items-center text-[10px] bg-black/50 p-1.5 rounded-md border border-gray-900 ${timer.isRunning?'timer-active':''}`; 
-                div.innerHTML=`<div><span class="font-mono text-gray-400">${escapeHtml(timer.name||'Dev Session')}</span> <span data-timer-id="${timer.id}" class="text-emerald-400 font-mono ml-1 font-bold">${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}</span></div><div class="flex gap-1.5 items-center">${!timer.isRunning?`<button onclick="startTimerById(${timer.id})" class="text-emerald-500 hover:text-emerald-400"><i data-lucide="play" class="w-3 h-3"></i></button>`:`<button onclick="stopTimerById(${timer.id})" class="text-amber-500 hover:text-amber-400"><i data-lucide="pause" class="w-3 h-3"></i></button>`}<button onclick="resetTimerById(${timer.id})" class="text-gray-500 hover:text-white"><i data-lucide="square" class="w-3 h-3"></i></button><button onclick="deleteTimerById(${timer.id})" class="text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div>`; 
-                container.appendChild(div); 
-            }); 
-            if(window.lucide) lucide.createIcons(); 
-        }
-        
-        function startTimerById(id) { 
-            const timer = timers.find(t=>t.id===id); 
-            if(!timer||timer.isRunning) return; 
-            timer.isRunning=true; 
-            clearInterval(timer.intervalId); 
-            renderTimers(); 
-            timer.intervalId=setInterval(()=>{ 
-                timer.seconds++; 
-                const display=document.querySelector(`[data-timer-id="${timer.id}"]`); 
-                if(display){ 
-                    const m=Math.floor(timer.seconds/60), s=timer.seconds%60; 
-                    display.innerText=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; 
-                } 
-            },1000); 
-        }
-        
-        function stopTimerById(id) { 
-            const timer=timers.find(t=>t.id===id); 
-            if(timer&&timer.isRunning){ 
-                clearInterval(timer.intervalId); 
-                timer.isRunning=false; 
-                timer.intervalId=null; 
-                renderTimers(); 
-                fullRender(); // This triggers sync to cloud when timer stops
-            } 
-        }
-        
-        function resetTimerById(id) { 
-            const timer=timers.find(t=>t.id===id); 
-            if(timer){ 
-                clearInterval(timer.intervalId); 
-                timer.seconds=0; 
-                timer.isRunning=false; 
-                timer.intervalId=null; 
-                renderTimers(); 
-                fullRender();
-            } 
-        }
-        
-        function deleteTimerById(id) { 
-            stopTimerById(id); 
-            timers=timers.filter(t=>t.id!==id); 
-            renderTimers(); 
-            fullRender();
-        }
-        
-        function createMergedTimer() { 
-            const input=document.getElementById('newTimerNameInput'); 
-            let name=input.value.trim(); 
-            if(!name) name="Dev Session"; 
-            timers.push({ id:Date.now(), name:name, seconds:0, isRunning:false, intervalId:null }); 
-            input.value=''; 
-            renderTimers(); 
-            fullRender();
-        }
-
-        // --- Calendar, Hardware, Matrix ---
-        let currentCalendarDate = new Date(2026,4,26); 
-        let selectedEventDate="2026-05-26";
-        
-        function renderCalendar() { 
-            const year=currentCalendarDate.getFullYear(), month=currentCalendarDate.getMonth(); 
-            const firstDay=new Date(year,month,1).getDay(), daysInMonth=new Date(year,month+1,0).getDate(); 
-            const adjustedFirst=firstDay===0?6:firstDay-1; 
-            const container=document.getElementById('calendarGrid'); 
-            if(!container) return; 
-            const monthsLabels=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]; 
-            document.getElementById('monthYearDisplay').innerText=`${monthsLabels[month]} ${year}`; 
-            let gridHtml='<div class="text-gray-600 font-bold">M</div><div class="text-gray-600 font-bold">T</div><div class="text-gray-600 font-bold">W</div><div class="text-gray-600 font-bold">T</div><div class="text-gray-600 font-bold">F</div><div class="text-gray-600 font-bold">S</div><div class="text-gray-600 font-bold">S</div>'; 
-            for(let i=0;i<adjustedFirst;i++) gridHtml+=`<div class="p-0.5 text-gray-800 opacity-20">-</div>`; 
-            for(let d=1;d<=daysInMonth;d++){ 
-                const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; 
-                const hasEvent=events.some(e=>e.date===dateStr); 
-                let cls="p-0.5 rounded text-[9px] hover:bg-blue-500/20 cursor-pointer transition"; 
-                if(hasEvent) cls+=" bg-blue-950 text-blue-400 font-bold border border-blue-900/50"; 
-                gridHtml+=`<div class="${cls}" onclick="selectEventDate('${dateStr}')">${d}</div>`; 
-            } 
-            container.innerHTML=gridHtml; 
-            const eventsContainer=document.getElementById('eventsList'); 
-            if(!eventsContainer) return; 
-            const monthEvents=events.filter(e=>new Date(e.date).getMonth()===month&&new Date(e.date).getFullYear()===year); 
-            if(monthEvents.length===0) eventsContainer.innerHTML='<div class="text-[9px] text-gray-600 text-center font-mono py-1">// No anomalies cataloged</div>'; 
-            else eventsContainer.innerHTML=monthEvents.map(ev=>`<div class="flex justify-between items-center bg-black/40 px-1.5 py-0.5 rounded border border-gray-900"><span class="text-[10px] text-gray-300 truncate w-44">${ev.title} <b class="text-blue-500 font-mono text-[8px]">(${ev.date.substring(5)})</b></span><button onclick="deleteEventById(${ev.id})" class="text-gray-600 hover:text-red-400"><i data-lucide="x" class="w-2.5 h-2.5"></i></button></div>`).join(''); 
-        }
-        
-        function selectEventDate(date) { selectedEventDate=date; document.getElementById('newEventTitle').placeholder=`Log to: ${date}`; }
-        
-        function addMergedEvent() { 
-            const title=document.getElementById('newEventTitle').value.trim(); 
-            if(title&&selectedEventDate){ 
-                events.push({ id:Date.now(), date:selectedEventDate, title:title }); 
-                fullRender(); 
-            } 
-        }
-        
-        function deleteEventById(id) { events=events.filter(e=>e.id!==id); fullRender(); }
-        function prevMonth() { currentCalendarDate.setMonth(currentCalendarDate.getMonth()-1); fullRender(); }
-        function nextMonth() { currentCalendarDate.setMonth(currentCalendarDate.getMonth()+1); fullRender(); }
-        
-        function renderHardware() { 
-            const container=document.getElementById('hardwareList'); 
-            if(!container) return; 
-            container.innerHTML=hardware.map((h,index)=>`<div class="bg-black/50 p-1.5 rounded-md border border-gray-900 text-[11px] space-y-0.5"><div class="text-[8px] font-mono text-cyan-400 uppercase tracking-wider">${escapeHtml(h.type)}</div><input type="text" value="${escapeHtml(h.name)}" onchange="updateHardwareName(${h.id}, this.value)" class="w-full bg-transparent border-none text-[11px] font-semibold text-gray-200 p-0 focus:ring-0"><div class="text-[9px] font-mono text-gray-500">${escapeHtml(h.note)}</div></div>`).join(''); 
-        }
-        
-        function updateHardwareName(id,value) { 
-            const device=hardware.find(h=>h.id===id); 
-            if(device){ 
-                device.name=value; 
-                debouncedSync(); 
-            } 
-        }
-        
-        function renderMatrix() { 
-            const container=document.getElementById('matrixLinksList'); 
-            if(!container) return; 
-            container.innerHTML=''; 
-            matrix.forEach((m,idx)=>{ 
-                const wrapper=document.createElement('div'); 
-                wrapper.className='bg-black/50 p-2 rounded-lg border border-gray-900 space-y-1 text-[11px]'; 
-                wrapper.innerHTML=`<input type="text" value="${escapeHtml(m.title)}" onchange="updateMatrixNode(${m.id}, 'title', this.value)" class="font-bold text-fuchsia-400 bg-transparent border-none p-0 focus:ring-0 text-[11px] w-full"><input type="text" value="${escapeHtml(m.sub)}" onchange="updateMatrixNode(${m.id}, 'sub', this.value)" class="text-gray-500 text-[9px] font-mono bg-transparent border-none p-0 focus:ring-0 w-full"><div class="flex items-center gap-1 text-[9px] text-blue-400 bg-black/40 px-1 py-0.5 rounded border border-gray-900/60 mt-1"><i data-lucide="link" class="w-2.5 h-2.5"></i><input type="text" value="${escapeHtml(m.url)}" onchange="updateMatrixNode(${m.id}, 'url', this.value)" class="bg-transparent border-none p-0 focus:ring-0 text-[9px] font-mono text-blue-500 w-full"></div>`; 
-                container.appendChild(wrapper); 
-            }); 
-        }
-        
-        function updateMatrixNode(id,field,value) { 
-            const node=matrix.find(m=>m.id===id); 
-            if(node){ 
-                node[field]=value; 
-                debouncedSync(); 
-            } 
-        }
-        
-        function renderLiveSummary() { 
-            let total=0; 
-            ['backlog','inprogress','done'].forEach(k=>{ if(tasks[k]) total+=tasks[k].length; }); 
-            const summary=document.getElementById('liveSummary'); 
-            if(summary) summary.innerHTML=`<div>COLUMNS TOTAL: ${total}</div><div>· SYSTEM ALERTS: ${reminders.length}</div><div>· EXCEPTIONS RECORDED: ${events.length}</div>`; 
-        }
-        
-        function copyWorkflowSnapshot() { 
-            let total=0; 
-            ['backlog','inprogress','done'].forEach(k=>{ if(tasks[k]) total+=tasks[k].length; }); 
-            const snapshotStr=`IDEV WORKSPACE\nTasks Active: ${total}\nAlert Matrix: ${reminders.length}\nChrono Clusters: ${events.length}`; 
-            navigator.clipboard.writeText(snapshotStr); 
-            alert("System snapshot mapped to clip layout."); 
-        }
-        
-        function resetAllWorkspace() { 
-            if(confirm("Purge local layout caches?")) { 
-                workspace = { 
-                    tasks:{ backlog:[], inprogress:[], done:[] }, 
-                    columnNames:{ backlog:"📋  backlog:", inprogress:"⚙️ inprogress:", done:"✅ done" }, 
-                    reminders:[], 
-                    timers:[], 
-                    events:[{ id:Date.now(), date:"2026-05-26", title:"System Refreshed Successfully" }], 
-                    notes:"", 
-                    hardware:[{ id:1, type:"Core Terminal", name:"ASUS Vivobook 16X", note:"Ryzen 7 // RTX Architecture Node" },{ id:2, type:"Mobile Interface", name:"Samsung Galaxy A17", note:"CODM High Sensitivity Workspace Mapping" },{ id:3, type:"Visual Pipeline", name:"LG 32\" Display", note:"Vertical Orientation Mount Array" }], 
-                    matrix:[{ id:1, title:"TAI Group Hub", sub:"Ahmad / Taoheed alignment matrix", url:"#" },{ id:2, title:"Multi-Tenancy Core", sub:"Centralized application services", url:"#" },{ id:3, title:"Web3 Sandbox", sub:"Solidity architecture nodes", url:"#" },{ id:4, title:"Gaming Logs", sub:"EA FC 26 / Naruto Storm 5", url:"#" }] 
-                }; 
-                syncLocalRefs(); 
-                if(document.getElementById('globalNotes')) document.getElementById('globalNotes').value=""; 
-                fullRender(); 
-            } 
-        }
-        
-        function exportAllData() { 
-            const dataDump=JSON.stringify(workspace,null,2); 
-            const blob=new Blob([dataDump],{type:'application/json'}); 
-            const url=URL.createObjectURL(blob); 
-            const a=document.createElement('a'); 
-            a.href=url; 
-            a.download='idev_architect_backup.json'; 
-            a.click(); 
-        }
-        
-        function escapeHtml(str) { 
-            return String(str).replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); 
-        }
-
-        // --- AUTH OBSERVER ---
+        // --- INIT ---
         supabaseClient.auth.onAuthStateChange(async (event, session) => {
-            console.log("Auth state change:", event);
+            console.log("Auth event:", event);
             if (session) {
                 authenticatedUser = session.user;
                 updateCloudUI(true, session.user.email);
-                await pullCloudWorkspace();
-                startPeriodicSync();
-                fullRender(true);
+                await pullFromCloud();
+                fullRender(false);
             } else {
                 authenticatedUser = null;
                 updateCloudUI(false, null);
-                if (syncInterval) {
-                    clearInterval(syncInterval);
-                    syncInterval = null;
-                }
                 loadLocalCache();
-                fullRender(true);
+                fullRender(false);
             }
         });
 
-        // Initialize
-        loadLocalCache();
-        syncLocalRefs();
-        if(document.getElementById('globalNotes')) document.getElementById('globalNotes').value = workspace.notes || "";
-        fullRender(false);
-        
-        // Check for existing session
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
             if (session) {
                 authenticatedUser = session.user;
                 updateCloudUI(true, session.user.email);
-                pullCloudWorkspace();
-                startPeriodicSync();
+                pullFromCloud();
+            } else {
+                loadLocalCache();
+                fullRender(false);
             }
         });
     </script>

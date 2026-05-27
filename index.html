@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        * { box-sizing: border-box; }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #02040A;
@@ -33,14 +34,36 @@
         .task-completed {
             border-left-color: #10B981 !important;
             opacity: 0.6;
+            text-decoration: line-through;
         }
         input, textarea, select {
             background: rgba(0, 0, 0, 0.6) !important;
             border: 1px solid rgba(255, 255, 255, 0.07) !important;
+            color: #e5e7eb !important;
         }
         input:focus, textarea:focus, select:focus {
             border-color: #00A3FF !important;
             outline: none !important;
+            ring: 2px solid rgba(0, 163, 255, 0.2) !important;
+        }
+        .calendar-day {
+            transition: all 0.15s ease;
+        }
+        .calendar-day:hover {
+            background: rgba(0, 163, 255, 0.2) !important;
+            transform: scale(1.05);
+        }
+        .calendar-day.has-event {
+            background: rgba(0, 163, 255, 0.3);
+            border: 1px solid rgba(0, 163, 255, 0.5);
+            font-weight: bold;
+            color: #00A3FF;
+        }
+        .calendar-day.today {
+            background: rgba(139, 92, 246, 0.3);
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            color: #c084fc;
+            font-weight: bold;
         }
         .toast {
             position: fixed;
@@ -76,6 +99,17 @@
         button:active {
             transform: scale(0.98);
         }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00A3FF;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body class="text-gray-300 min-h-screen pb-6">
@@ -94,90 +128,86 @@
         <div id="authContainer" class="flex items-center gap-2 text-[10px] font-mono glass-panel px-3 py-1.5 rounded-xl">
             <div class="flex gap-1.5 items-center">
                 <i data-lucide="cloud-off" class="w-3.5 h-3.5 text-amber-500" id="syncStatusIcon"></i>
-                <input type="email" id="authEmail" placeholder="Email" class="px-2 py-0.5 rounded text-[10px] w-28 bg-black">
-                <input type="password" id="authPassword" placeholder="Password" class="px-2 py-0.5 rounded text-[10px] w-24 bg-black">
-                <button onclick="window.handleSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded hover:bg-blue-600">Sign In</button>
-                <button onclick="window.handleSignUp()" class="text-gray-500 hover:text-gray-300 text-[9px]">Sign Up</button>
+                <span id="authStatus" class="text-gray-400">Not signed in</span>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <!-- Left Panel -->
+        <!-- Left Panel: Calendar & Events -->
         <div class="glass-panel rounded-xl p-3.5 space-y-3.5 flex flex-col h-[540px]">
             <div>
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-blue-400 mb-2"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Calendar Events</h2>
-                <div id="eventsList" class="space-y-1 max-h-[200px] overflow-y-auto"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-blue-400">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Calendar
+                    </h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="prevMonth()" class="p-1 hover:bg-gray-800 rounded text-gray-400 text-xs">←</button>
+                        <span id="monthYearDisplay" class="text-xs font-mono text-gray-300 font-bold min-w-[100px] text-center"></span>
+                        <button onclick="nextMonth()" class="p-1 hover:bg-gray-800 rounded text-gray-400 text-xs">→</button>
+                    </div>
+                </div>
+                <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center mb-3"></div>
+                <div id="eventsList" class="space-y-1 max-h-[180px] overflow-y-auto"></div>
                 <div class="flex gap-1 mt-2">
                     <input type="text" id="newEventTitle" placeholder="New event..." class="text-[10px] rounded-md px-2 py-1 flex-1">
                     <input type="date" id="newEventDate" class="text-[10px] rounded-md px-2 py-1 w-28">
-                    <button onclick="window.addEvent()" class="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-[10px] px-2 rounded">Add</button>
+                    <button onclick="addEvent()" class="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-[10px] px-2 rounded hover:bg-blue-600/40">Add</button>
                 </div>
             </div>
             
             <div class="border-t border-gray-900 pt-2.5">
-                <div class="flex justify-between items-center mb-1">
+                <div class="flex justify-between items-center mb-2">
                     <h2 class="text-xs font-semibold flex items-center gap-1.5 text-purple-400"><i data-lucide="bell" class="w-3.5 h-3.5"></i> Reminders</h2>
-                    <button onclick="window.addReminder()" class="text-[9px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">+ Add</button>
+                    <button onclick="addReminder()" class="text-[9px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-2 py-0.5 rounded hover:bg-purple-500/20">+ Add</button>
                 </div>
                 <div id="reminderList" class="space-y-1 max-h-[120px] overflow-y-auto"></div>
             </div>
-
-            <div class="border-t border-gray-900 pt-2.5">
-                <div class="flex justify-between items-center mb-1.5">
-                    <h2 class="text-xs font-semibold flex items-center gap-1.5 text-emerald-400"><i data-lucide="timer" class="w-3.5 h-3.5"></i> Timers</h2>
-                    <div class="flex gap-1">
-                        <input type="text" id="newTimerName" placeholder="Timer name" class="text-[9px] rounded-md px-1.5 py-0.5 w-20">
-                        <button onclick="window.addTimer()" class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 rounded text-[10px]">+</button>
-                    </div>
-                </div>
-                <div id="timerList" class="space-y-1 max-h-[100px] overflow-y-auto"></div>
-            </div>
         </div>
 
-        <!-- Center Panel: Kanban -->
+        <!-- Center Panel: Kanban Board -->
         <div class="glass-panel rounded-xl p-3.5 flex flex-col h-[540px]">
-            <div class="flex justify-between items-center mb-2">
+            <div class="flex justify-between items-center mb-3">
                 <h2 class="text-xs font-semibold flex items-center gap-1.5 text-sky-400"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> Kanban Board</h2>
                 <span id="taskStats" class="text-[9px] font-mono bg-gray-950 px-2 py-0.5 rounded border border-gray-900"></span>
             </div>
             <div id="kanbanContainer" class="flex-1 overflow-y-auto space-y-3"></div>
             
-            <div class="border-t border-gray-900 pt-2.5 mt-2">
-                <div class="flex gap-1">
-                    <input type="text" id="newTaskTitle" placeholder="New task..." class="text-[10px] rounded-md px-2 py-1 flex-1">
-                    <select id="newTaskStage" class="text-[10px] rounded-md px-1 text-gray-300 w-24">
+            <div class="border-t border-gray-900 pt-3 mt-2">
+                <div class="flex gap-2">
+                    <input type="text" id="newTaskTitle" placeholder="New task..." class="text-[10px] rounded-md px-2 py-1.5 flex-1">
+                    <select id="newTaskStage" class="text-[10px] rounded-md px-2 text-gray-300 w-28">
                         <option value="backlog">📋 Backlog</option>
                         <option value="inprogress">⚙️ In Progress</option>
                         <option value="done">✅ Done</option>
                     </select>
-                    <button onclick="window.addTask()" class="bg-sky-600/20 border border-sky-500/30 text-sky-400 px-2 rounded text-xs">+</button>
+                    <button onclick="addTask()" class="bg-sky-600/20 border border-sky-500/30 text-sky-400 px-3 rounded text-xs hover:bg-sky-600/40">+</button>
                 </div>
             </div>
         </div>
 
-        <!-- Right Panel -->
+        <!-- Right Panel: Notes, Hardware, Links -->
         <div class="glass-panel rounded-xl p-3.5 space-y-3 flex flex-col h-[540px]">
             <div>
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-amber-400 mb-1.5"><i data-lucide="sticky-note" class="w-3.5 h-3.5"></i> Notes</h2>
-                <textarea id="globalNotes" rows="4" oninput="window.debouncedSync()" class="w-full rounded-lg text-[10px] font-mono p-1.5 resize-none" placeholder="Write your notes here..."></textarea>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-amber-400 mb-2"><i data-lucide="sticky-note" class="w-3.5 h-3.5"></i> Notes</h2>
+                <textarea id="globalNotes" rows="3" oninput="debouncedSync()" class="w-full rounded-lg text-[11px] font-mono p-2 resize-none" placeholder="Write your notes here..."></textarea>
             </div>
             <div class="border-t border-gray-900 pt-2">
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-cyan-400 mb-1"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> Hardware</h2>
-                <div id="hardwareList" class="space-y-1 max-h-[120px] overflow-y-auto"></div>
-                <div class="flex gap-1 mt-1">
-                    <input type="text" id="newHardwareName" placeholder="Device name" class="text-[9px] rounded-md px-1.5 py-0.5 flex-1">
-                    <input type="text" id="newHardwareType" placeholder="Type" class="text-[9px] rounded-md px-1.5 py-0.5 w-16">
-                    <button onclick="window.addHardware()" class="bg-cyan-500/10 text-cyan-400 px-1.5 rounded text-[9px]">+</button>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-cyan-400 mb-2"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> Hardware</h2>
+                <div id="hardwareList" class="space-y-1 max-h-[100px] overflow-y-auto"></div>
+                <div class="flex gap-1 mt-2">
+                    <input type="text" id="newHardwareName" placeholder="Device name" class="text-[9px] rounded-md px-1.5 py-1 flex-1">
+                    <input type="text" id="newHardwareType" placeholder="Type" class="text-[9px] rounded-md px-1.5 py-1 w-16">
+                    <button onclick="addHardware()" class="bg-cyan-500/10 text-cyan-400 px-2 rounded text-[9px] hover:bg-cyan-500/20">+</button>
                 </div>
             </div>
             <div class="border-t border-gray-900 pt-2">
-                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-fuchsia-400 mb-1"><i data-lucide="link" class="w-3.5 h-3.5"></i> Links</h2>
-                <div id="matrixList" class="space-y-1 max-h-[120px] overflow-y-auto"></div>
-                <div class="flex gap-1 mt-1">
-                    <input type="text" id="newLinkTitle" placeholder="Title" class="text-[9px] rounded-md px-1.5 py-0.5 flex-1">
-                    <input type="text" id="newLinkUrl" placeholder="URL" class="text-[9px] rounded-md px-1.5 py-0.5 flex-1">
-                    <button onclick="window.addLink()" class="bg-fuchsia-500/10 text-fuchsia-400 px-1.5 rounded text-[9px]">+</button>
+                <h2 class="text-xs font-semibold flex items-center gap-1.5 text-fuchsia-400 mb-2"><i data-lucide="link" class="w-3.5 h-3.5"></i> Quick Links</h2>
+                <div id="matrixList" class="space-y-1 max-h-[100px] overflow-y-auto"></div>
+                <div class="flex gap-1 mt-2">
+                    <input type="text" id="newLinkTitle" placeholder="Title" class="text-[9px] rounded-md px-1.5 py-1 flex-1">
+                    <input type="text" id="newLinkUrl" placeholder="URL" class="text-[9px] rounded-md px-1.5 py-1 flex-1">
+                    <button onclick="addLink()" class="bg-fuchsia-500/10 text-fuchsia-400 px-2 rounded text-[9px] hover:bg-fuchsia-500/20">+</button>
                 </div>
             </div>
         </div>
@@ -186,58 +216,59 @@
     <footer class="max-w-7xl mx-auto px-4 mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-[10px] font-mono">
         <div class="glass-panel rounded-lg p-2.5 flex justify-between items-center">
             <div id="liveSummary" class="flex gap-4 text-gray-500"></div>
-            <button onclick="window.manualSync()" class="bg-green-600/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded">⟳ Sync Now</button>
+            <button onclick="manualSync()" class="bg-green-600/20 text-green-400 border border-green-500/30 px-3 py-1 rounded hover:bg-green-600/30">⟳ Sync Now</button>
         </div>
         <div class="glass-panel rounded-lg p-2.5 flex justify-between items-center">
-            <span class="text-gray-600">⚡ Connected to Supabase Cloud</span>
-            <div class="flex gap-2">
-                <button onclick="window.resetAllData()" class="text-red-400 hover:text-red-300">Reset</button>
-                <button onclick="window.exportData()" class="text-blue-400 hover:text-blue-300">Export</button>
+            <span class="text-gray-600">⚡ Cloud Sync Active</span>
+            <div class="flex gap-3">
+                <button onclick="showAuthModal()" id="signInBtn" class="text-blue-400 hover:text-blue-300">Sign In</button>
+                <button onclick="resetAllData()" class="text-red-400 hover:text-red-300">Reset</button>
+                <button onclick="exportData()" class="text-blue-400 hover:text-blue-300">Export</button>
             </div>
         </div>
     </footer>
 
+    <!-- Simple Auth Modal -->
+    <div id="authModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+        <div class="glass-panel rounded-xl w-full max-w-md p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-gray-900 pb-3">
+                <h3 class="text-sm font-bold text-white">Sign In</h3>
+                <button onclick="closeAuthModal()" class="text-gray-500 hover:text-white">✕</button>
+            </div>
+            <div class="space-y-3">
+                <input type="email" id="modalEmail" placeholder="Email" class="w-full px-3 py-2 rounded text-sm bg-black/60 border border-gray-800">
+                <input type="password" id="modalPassword" placeholder="Password" class="w-full px-3 py-2 rounded text-sm bg-black/60 border border-gray-800">
+                <div class="flex gap-3 pt-2">
+                    <button onclick="handleSignIn()" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Sign In</button>
+                    <button onclick="handleSignUp()" class="flex-1 bg-gray-700 text-gray-300 py-2 rounded hover:bg-gray-600">Sign Up</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Make functions globally available
-        window.showToast = showToast;
-        window.handleSignIn = handleSignIn;
-        window.handleSignUp = handleSignUp;
-        window.handleSignOut = handleSignOut;
-        window.addTask = addTask;
-        window.addReminder = addReminder;
-        window.addTimer = addTimer;
-        window.addEvent = addEvent;
-        window.addHardware = addHardware;
-        window.addLink = addLink;
-        window.manualSync = manualSync;
-        window.resetAllData = resetAllData;
-        window.exportData = exportData;
-        window.debouncedSync = debouncedSync;
-        window.toggleTask = toggleTask;
-        window.moveTask = moveTask;
-        window.deleteTask = deleteTask;
-        window.deleteReminder = deleteReminder;
-        window.deleteTimer = deleteTimer;
-        window.deleteEvent = deleteEvent;
-        window.deleteHardware = deleteHardware;
-        window.deleteLink = deleteLink;
+        // ============================================
+        // SIMPLE AUTH - Only you and 2 others can use
+        // Allowed emails: Add your emails here
+        // ============================================
+        const ALLOWED_EMAILS = [
+            "mukhtar@idev.com",     // Replace with your email
+            "user2@idev.com",        // Replace with second user
+            "user3@idev.com"         // Replace with third user
+        ];
 
         // Supabase config
         const SUPABASE_URL = "https://spnxmkzudlkhsboivfax.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbnhta3p1ZGxraHNib2l2ZmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjcyNzEsImV4cCI6MjA5NTQwMzI3MX0.pCND95Fg6rWTXYVW90IYKEeEpQkXuO77kMnA5Nbec74";
         
-        let supabase = supabase || window.supabase?.createClient?.(SUPABASE_URL, SUPABASE_ANON_KEY);
-        if (!supabase && window.supabase) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        }
-        
+        let supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let currentUser = null;
         let syncTimer = null;
+        let currentCalendarDate = new Date();
         
-        // Workspace data structure (matches SQL schema)
+        // Workspace data
         let workspace = {
             tasks: { backlog: [], inprogress: [], done: [] },
-            columnNames: { backlog: "📋 Backlog", inprogress: "⚙️ In Progress", done: "✅ Done" },
             reminders: [],
             timers: [],
             events: [],
@@ -246,68 +277,144 @@
             matrix: []
         };
 
-        // Helper functions
+        // ============================================
+        // UI Functions
+        // ============================================
         function showToast(msg, type = 'info') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : 'ℹ️ ';
-            toast.innerHTML += msg;
+            toast.innerHTML = (type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : 'ℹ️ ') + msg;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
 
-        function updateUI() {
+        function showAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function updateAuthUI() {
+            const container = document.getElementById('authContainer');
+            const signInBtn = document.getElementById('signInBtn');
+            const authStatus = document.getElementById('authStatus');
             const icon = document.getElementById('syncStatusIcon');
-            if (icon) {
-                icon.setAttribute('data-lucide', currentUser ? 'cloud' : 'cloud-off');
+            
+            if (currentUser) {
+                container.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span class="text-gray-400 text-[10px]">${currentUser.email}</span>
+                        <button onclick="signOut()" class="text-red-400 border border-red-900/40 bg-red-950/20 px-2 py-0.5 rounded text-[9px] hover:bg-red-900">Sign Out</button>
+                    </div>
+                `;
+                if (signInBtn) signInBtn.style.display = 'none';
+                if (authStatus) authStatus.innerText = currentUser.email;
+                if (icon) icon.setAttribute('data-lucide', 'cloud');
+            } else {
+                container.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="cloud-off" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <span class="text-gray-400 text-[10px]">Not signed in</span>
+                        <button onclick="showAuthModal()" class="text-blue-400 border border-blue-900/40 bg-blue-950/20 px-2 py-0.5 rounded text-[9px] hover:bg-blue-900">Sign In</button>
+                    </div>
+                `;
+                if (signInBtn) signInBtn.style.display = 'block';
+                if (authStatus) authStatus.innerText = 'Not signed in';
+                if (icon) icon.setAttribute('data-lucide', 'cloud-off');
             }
-            if (window.lucide) {
-                lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // ============================================
+        // Auth Functions (with email whitelist)
+        // ============================================
+        async function handleSignUp() {
+            const email = document.getElementById('modalEmail').value.trim();
+            const password = document.getElementById('modalPassword').value;
+            
+            if (!email || !password) {
+                showToast('Enter email and password', 'error');
+                return;
+            }
+            
+            // Check if email is allowed
+            if (!ALLOWED_EMAILS.includes(email)) {
+                showToast('Access denied. You are not authorized to sign up.', 'error');
+                return;
+            }
+            
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) {
+                showToast(error.message, 'error');
+            } else {
+                showToast('Account created! Please sign in.', 'success');
+                closeAuthModal();
             }
         }
 
-        // Cloud sync functions
-        async function pushToCloud() {
-            if (!currentUser || !supabase) return;
+        async function handleSignIn() {
+            const email = document.getElementById('modalEmail').value.trim();
+            const password = document.getElementById('modalPassword').value;
             
+            if (!email || !password) {
+                showToast('Enter email and password', 'error');
+                return;
+            }
+            
+            // Check if email is allowed
+            if (!ALLOWED_EMAILS.includes(email)) {
+                showToast('Access denied. Email not authorized.', 'error');
+                return;
+            }
+            
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                showToast(error.message, 'error');
+            } else {
+                showToast('Signed in!', 'success');
+                closeAuthModal();
+            }
+        }
+
+        async function signOut() {
+            await supabase.auth.signOut();
+            showToast('Signed out', 'info');
+        }
+
+        // ============================================
+        // Cloud Sync
+        // ============================================
+        async function pushToCloud() {
+            if (!currentUser) return;
             try {
                 const { error } = await supabase
                     .from('user_workspaces')
-                    .upsert({
-                        user_id: currentUser.id,
-                        data: workspace,
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'user_id' });
-                
+                    .upsert({ user_id: currentUser.id, data: workspace, updated_at: new Date().toISOString() }, 
+                            { onConflict: 'user_id' });
                 if (error) throw error;
-                
                 const icon = document.getElementById('syncStatusIcon');
-                if (icon) {
-                    icon.classList.add('sync-pulse');
-                    setTimeout(() => icon.classList.remove('sync-pulse'), 500);
-                }
-                console.log('✅ Synced to cloud');
+                if (icon) icon.classList.add('sync-pulse');
+                setTimeout(() => icon?.classList.remove('sync-pulse'), 500);
             } catch (err) {
                 console.error('Push error:', err);
-                showToast('Sync failed: ' + err.message, 'error');
             }
         }
 
         async function pullFromCloud() {
-            if (!currentUser || !supabase) return;
-            
+            if (!currentUser) return;
             try {
                 const { data, error } = await supabase
                     .from('user_workspaces')
                     .select('data')
                     .eq('user_id', currentUser.id)
                     .single();
-                
                 if (error && error.code !== 'PGRST116') throw error;
-                
                 if (data?.data) {
                     workspace = data.data;
-                    // Ensure all required structures exist
+                    // Ensure all arrays exist
                     if (!workspace.tasks) workspace.tasks = { backlog: [], inprogress: [], done: [] };
                     if (!workspace.reminders) workspace.reminders = [];
                     if (!workspace.timers) workspace.timers = [];
@@ -319,8 +426,6 @@
                     const notesEl = document.getElementById('globalNotes');
                     if (notesEl) notesEl.value = workspace.notes || "";
                     renderAll();
-                    console.log('✅ Pulled from cloud');
-                    showToast('Synced from cloud', 'success');
                 }
             } catch (err) {
                 console.error('Pull error:', err);
@@ -329,9 +434,7 @@
 
         function debouncedSync() {
             const notesEl = document.getElementById('globalNotes');
-            if (notesEl) {
-                workspace.notes = notesEl.value;
-            }
+            if (notesEl) workspace.notes = notesEl.value;
             saveToLocal();
             if (currentUser) {
                 clearTimeout(syncTimer);
@@ -348,7 +451,6 @@
             pushToCloud().then(() => pullFromCloud());
         }
 
-        // Local storage backup
         function saveToLocal() {
             localStorage.setItem('idev_workspace', JSON.stringify(workspace));
         }
@@ -361,25 +463,108 @@
                     const notesEl = document.getElementById('globalNotes');
                     if (notesEl) notesEl.value = workspace.notes || "";
                     renderAll();
-                } catch(e) {
-                    console.error('Error loading from local:', e);
-                }
+                } catch(e) {}
             }
         }
 
-        // Render all UI components
+        // ============================================
+        // CALENDAR FUNCTIONS
+        // ============================================
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            
+            const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            document.getElementById('monthYearDisplay').innerHTML = `${monthNames[month]} ${year}`;
+            
+            const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+            let html = weekdays.map(day => `<div class="text-[9px] text-gray-500 font-bold py-1">${day}</div>`).join('');
+            
+            // Adjust for Sunday-first calendar
+            let startOffset = firstDay === 0 ? 6 : firstDay - 1;
+            for (let i = 0; i < startOffset; i++) {
+                html += `<div class="p-1 text-gray-700">-</div>`;
+            }
+            
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const hasEvent = workspace.events?.some(e => e.date === dateStr) || false;
+                const isToday = dateStr === todayStr;
+                let cls = "calendar-day p-1 rounded text-[10px] cursor-pointer text-center";
+                if (hasEvent) cls += " has-event";
+                if (isToday) cls += " today";
+                html += `<div class="${cls}" onclick="selectDate('${dateStr}')">${d}</div>`;
+            }
+            
+            document.getElementById('calendarGrid').innerHTML = html;
+        }
+
+        function selectDate(dateStr) {
+            document.getElementById('newEventDate').value = dateStr;
+            showToast(`Selected ${dateStr}`, 'info');
+        }
+
+        function prevMonth() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendar();
+        }
+
+        // ============================================
+        // RENDER ALL COMPONENTS
+        // ============================================
         function renderAll() {
-            renderKanban();
-            renderReminders();
-            renderTimers();
+            renderCalendar();
             renderEvents();
+            renderReminders();
+            renderKanban();
             renderHardware();
             renderLinks();
             updateStats();
-            
-            if (window.lucide) {
-                lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderEvents() {
+            const container = document.getElementById('eventsList');
+            if (!container) return;
+            const events = workspace.events || [];
+            if (events.length === 0) {
+                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No events</div>';
+                return;
             }
+            container.innerHTML = events.map((e, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-2 rounded">
+                    <div>
+                        <span class="text-blue-400 font-mono text-[9px]">${e.date || 'No date'}</span>
+                        <span class="ml-2">${escapeHtml(e.title)}</span>
+                    </div>
+                    <button onclick="deleteEvent(${i})" class="text-red-400 hover:text-red-300">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function renderReminders() {
+            const container = document.getElementById('reminderList');
+            if (!container) return;
+            const reminders = workspace.reminders || [];
+            if (reminders.length === 0) {
+                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No reminders</div>';
+                return;
+            }
+            container.innerHTML = reminders.map((r, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-2 rounded">
+                    <span>${escapeHtml(r.text)}</span>
+                    <button onclick="deleteReminder(${i})" class="text-red-400 hover:text-red-300">✕</button>
+                </div>
+            `).join('');
         }
 
         function renderKanban() {
@@ -389,6 +574,7 @@
             
             const stages = ['backlog', 'inprogress', 'done'];
             const titles = { backlog: '📋 Backlog', inprogress: '⚙️ In Progress', done: '✅ Done' };
+            const colors = { backlog: 'border-l-blue-500', inprogress: 'border-l-purple-500', done: 'border-l-emerald-500' };
             
             stages.forEach(stage => {
                 const column = document.createElement('div');
@@ -405,93 +591,45 @@
                 const stageTasks = workspace.tasks[stage] || [];
                 stageTasks.forEach((task, idx) => {
                     const taskDiv = document.createElement('div');
-                    taskDiv.className = `task-card p-2 rounded-md text-[11px] ${task.completed ? 'task-completed' : ''}`;
+                    taskDiv.className = `task-card p-2 rounded-md text-[11px] ${colors[stage]} ${task.completed ? 'task-completed' : ''}`;
                     taskDiv.innerHTML = `
                         <div class="flex items-start justify-between gap-2">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" ${task.completed ? 'checked' : ''} 
-                                           onchange="window.toggleTask('${stage}', ${idx}, this.checked)" class="w-3 h-3">
+                                           onchange="toggleTask('${stage}', ${idx}, this.checked)" class="w-3 h-3 rounded">
                                     <span class="${task.completed ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(task.title)}</span>
                                 </div>
                                 ${task.meta ? `<div class="text-[9px] text-gray-500 mt-0.5 ml-5">${escapeHtml(task.meta)}</div>` : ''}
                             </div>
                             <div class="flex gap-1">
-                                ${stage !== 'backlog' ? `<button onclick="window.moveTask('${stage}', ${idx}, 'left')" class="text-gray-500 hover:text-white">←</button>` : ''}
-                                ${stage !== 'done' ? `<button onclick="window.moveTask('${stage}', ${idx}, 'right')" class="text-gray-500 hover:text-white">→</button>` : ''}
-                                <button onclick="window.deleteTask('${stage}', ${idx})" class="text-gray-500 hover:text-red-400">✕</button>
+                                ${stage !== 'backlog' ? `<button onclick="moveTask('${stage}', ${idx}, 'left')" class="text-gray-500 hover:text-white text-xs">←</button>` : ''}
+                                ${stage !== 'done' ? `<button onclick="moveTask('${stage}', ${idx}, 'right')" class="text-gray-500 hover:text-white text-xs">→</button>` : ''}
+                                <button onclick="deleteTask('${stage}', ${idx})" class="text-gray-500 hover:text-red-400 text-xs">✕</button>
                             </div>
                         </div>
                     `;
                     tasksContainer.appendChild(taskDiv);
                 });
-                
                 container.appendChild(column);
             });
-        }
-
-        function renderReminders() {
-            const container = document.getElementById('reminderList');
-            if (!container) return;
-            if (!workspace.reminders || workspace.reminders.length === 0) {
-                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No reminders</div>';
-                return;
-            }
-            container.innerHTML = workspace.reminders.map((r, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
-                    <span>${escapeHtml(r.text)}</span>
-                    <button onclick="window.deleteReminder(${i})" class="text-red-400">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function renderTimers() {
-            const container = document.getElementById('timerList');
-            if (!container) return;
-            if (!workspace.timers || workspace.timers.length === 0) {
-                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No timers</div>';
-                return;
-            }
-            container.innerHTML = workspace.timers.map((t, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
-                    <span>${escapeHtml(t.name)}: ${Math.floor(t.seconds/60)}:${(t.seconds%60).toString().padStart(2,'0')}</span>
-                    <button onclick="window.deleteTimer(${i})" class="text-red-400">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function renderEvents() {
-            const container = document.getElementById('eventsList');
-            if (!container) return;
-            if (!workspace.events || workspace.events.length === 0) {
-                container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No events</div>';
-                return;
-            }
-            container.innerHTML = workspace.events.map((e, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
-                    <div>
-                        <span class="text-blue-400">${e.date || 'No date'}</span>
-                        <span class="ml-2">${escapeHtml(e.title)}</span>
-                    </div>
-                    <button onclick="window.deleteEvent(${i})" class="text-red-400">✕</button>
-                </div>
-            `).join('');
         }
 
         function renderHardware() {
             const container = document.getElementById('hardwareList');
             if (!container) return;
-            if (!workspace.hardware || workspace.hardware.length === 0) {
+            const hardware = workspace.hardware || [];
+            if (hardware.length === 0) {
                 container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No hardware</div>';
                 return;
             }
-            container.innerHTML = workspace.hardware.map((h, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
+            container.innerHTML = hardware.map((h, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-2 rounded">
                     <div>
                         <span class="text-cyan-400">${escapeHtml(h.type)}</span>
                         <span class="ml-2">${escapeHtml(h.name)}</span>
                     </div>
-                    <button onclick="window.deleteHardware(${i})" class="text-red-400">✕</button>
+                    <button onclick="deleteHardware(${i})" class="text-red-400 hover:text-red-300">✕</button>
                 </div>
             `).join('');
         }
@@ -499,14 +637,15 @@
         function renderLinks() {
             const container = document.getElementById('matrixList');
             if (!container) return;
-            if (!workspace.matrix || workspace.matrix.length === 0) {
+            const matrix = workspace.matrix || [];
+            if (matrix.length === 0) {
                 container.innerHTML = '<div class="text-[9px] text-gray-600 text-center py-2">No links</div>';
                 return;
             }
-            container.innerHTML = workspace.matrix.map((l, i) => `
-                <div class="flex justify-between items-center text-[10px] bg-black/40 p-1.5 rounded">
+            container.innerHTML = matrix.map((l, i) => `
+                <div class="flex justify-between items-center text-[10px] bg-black/40 p-2 rounded">
                     <a href="${escapeHtml(l.url)}" target="_blank" class="text-fuchsia-400 hover:underline truncate flex-1">${escapeHtml(l.title)}</a>
-                    <button onclick="window.deleteLink(${i})" class="text-red-400 ml-2">✕</button>
+                    <button onclick="deleteLink(${i})" class="text-red-400 hover:text-red-300 ml-2">✕</button>
                 </div>
             `).join('');
         }
@@ -531,15 +670,16 @@
             }
         }
 
-        // Actions
+        // ============================================
+        // CRUD Operations
+        // ============================================
         function addTask() {
             const title = document.getElementById('newTaskTitle')?.value.trim();
             const stage = document.getElementById('newTaskStage')?.value;
             if (title && stage) {
                 if (!workspace.tasks[stage]) workspace.tasks[stage] = [];
                 workspace.tasks[stage].push({ title, meta: '', completed: stage === 'done' });
-                const inputEl = document.getElementById('newTaskTitle');
-                if (inputEl) inputEl.value = '';
+                document.getElementById('newTaskTitle').value = '';
                 renderAll();
                 debouncedSync();
             }
@@ -593,34 +733,13 @@
             }
         }
 
-        function addTimer() {
-            const name = document.getElementById('newTimerName')?.value.trim();
-            if (name) {
-                if (!workspace.timers) workspace.timers = [];
-                workspace.timers.push({ id: Date.now(), name, seconds: 0 });
-                const inputEl = document.getElementById('newTimerName');
-                if (inputEl) inputEl.value = '';
-                renderAll();
-                debouncedSync();
-            }
-        }
-
-        function deleteTimer(idx) {
-            if (workspace.timers) {
-                workspace.timers.splice(idx, 1);
-                renderAll();
-                debouncedSync();
-            }
-        }
-
         function addEvent() {
             const title = document.getElementById('newEventTitle')?.value.trim();
             const date = document.getElementById('newEventDate')?.value;
             if (title) {
                 if (!workspace.events) workspace.events = [];
                 workspace.events.push({ id: Date.now(), title, date: date || new Date().toISOString().split('T')[0] });
-                const inputEl = document.getElementById('newEventTitle');
-                if (inputEl) inputEl.value = '';
+                document.getElementById('newEventTitle').value = '';
                 renderAll();
                 debouncedSync();
             }
@@ -640,10 +759,8 @@
             if (name) {
                 if (!workspace.hardware) workspace.hardware = [];
                 workspace.hardware.push({ id: Date.now(), name, type: type || 'Device' });
-                const nameEl = document.getElementById('newHardwareName');
-                const typeEl = document.getElementById('newHardwareType');
-                if (nameEl) nameEl.value = '';
-                if (typeEl) typeEl.value = '';
+                document.getElementById('newHardwareName').value = '';
+                document.getElementById('newHardwareType').value = '';
                 renderAll();
                 debouncedSync();
             }
@@ -663,10 +780,8 @@
             if (title && url) {
                 if (!workspace.matrix) workspace.matrix = [];
                 workspace.matrix.push({ id: Date.now(), title, url });
-                const titleEl = document.getElementById('newLinkTitle');
-                const urlEl = document.getElementById('newLinkUrl');
-                if (titleEl) titleEl.value = '';
-                if (urlEl) urlEl.value = '';
+                document.getElementById('newLinkTitle').value = '';
+                document.getElementById('newLinkUrl').value = '';
                 renderAll();
                 debouncedSync();
             }
@@ -684,7 +799,6 @@
             if (confirm('Reset all data? This cannot be undone.')) {
                 workspace = {
                     tasks: { backlog: [], inprogress: [], done: [] },
-                    columnNames: { backlog: "📋 Backlog", inprogress: "⚙️ In Progress", done: "✅ Done" },
                     reminders: [],
                     timers: [],
                     events: [],
@@ -692,8 +806,7 @@
                     hardware: [],
                     matrix: []
                 };
-                const notesEl = document.getElementById('globalNotes');
-                if (notesEl) notesEl.value = '';
+                document.getElementById('globalNotes').value = '';
                 renderAll();
                 debouncedSync();
                 showToast('All data reset', 'info');
@@ -717,104 +830,61 @@
             return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
         }
 
-        // Auth functions
-        async function handleSignUp() {
-            const email = document.getElementById('authEmail')?.value.trim();
-            const password = document.getElementById('authPassword')?.value;
-            if (!email || !password) {
-                showToast('Enter email and password', 'error');
-                return;
-            }
-            if (!supabase) {
-                showToast('Supabase not initialized', 'error');
-                return;
-            }
-            const { error } = await supabase.auth.signUp({ email, password });
-            if (error) showToast(error.message, 'error');
-            else showToast('Account created! Please sign in.', 'success');
-        }
+        // ============================================
+        // Make functions global for HTML buttons
+        // ============================================
+        window.showAuthModal = showAuthModal;
+        window.closeAuthModal = closeAuthModal;
+        window.handleSignIn = handleSignIn;
+        window.handleSignUp = handleSignUp;
+        window.signOut = signOut;
+        window.manualSync = manualSync;
+        window.resetAllData = resetAllData;
+        window.exportData = exportData;
+        window.addTask = addTask;
+        window.toggleTask = toggleTask;
+        window.moveTask = moveTask;
+        window.deleteTask = deleteTask;
+        window.addReminder = addReminder;
+        window.deleteReminder = deleteReminder;
+        window.addEvent = addEvent;
+        window.deleteEvent = deleteEvent;
+        window.addHardware = addHardware;
+        window.deleteHardware = deleteHardware;
+        window.addLink = addLink;
+        window.deleteLink = deleteLink;
+        window.prevMonth = prevMonth;
+        window.nextMonth = nextMonth;
+        window.selectDate = selectDate;
+        window.debouncedSync = debouncedSync;
 
-        async function handleSignIn() {
-            const email = document.getElementById('authEmail')?.value.trim();
-            const password = document.getElementById('authPassword')?.value;
-            if (!email || !password) {
-                showToast('Enter email and password', 'error');
-                return;
-            }
-            if (!supabase) {
-                showToast('Supabase not initialized', 'error');
-                return;
-            }
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) showToast(error.message, 'error');
-            else showToast('Signed in!', 'success');
-        }
-
-        async function handleSignOut() {
-            if (supabase) {
-                await supabase.auth.signOut();
-            }
-        }
-
-        function updateAuthUI(user) {
-            const container = document.getElementById('authContainer');
-            if (!container) return;
-            
-            if (user) {
-                container.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-400"></i>
-                        <span class="text-gray-400 truncate max-w-[110px]">${user.email}</span>
-                        <button onclick="window.handleSignOut()" class="text-red-400 border border-red-900/40 bg-red-950/20 px-2 py-0.5 rounded hover:bg-red-900">Sign Out</button>
-                    </div>
-                `;
-            } else {
-                container.innerHTML = `
-                    <div class="flex gap-1.5 items-center">
-                        <i data-lucide="cloud-off" class="w-3.5 h-3.5 text-amber-500"></i>
-                        <input type="email" id="authEmail" placeholder="Email" class="px-2 py-0.5 rounded text-[10px] w-28 bg-black">
-                        <input type="password" id="authPassword" placeholder="Password" class="px-2 py-0.5 rounded text-[10px] w-24 bg-black">
-                        <button onclick="window.handleSignIn()" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded">Sign In</button>
-                        <button onclick="window.handleSignUp()" class="text-gray-500 hover:text-gray-300 text-[9px]">Sign Up</button>
-                    </div>
-                `;
-            }
-            if (window.lucide) {
-                lucide.createIcons();
-            }
-        }
-
-        // Auth state listener
-        if (supabase) {
-            supabase.auth.onAuthStateChange(async (event, session) => {
-                if (session) {
-                    currentUser = session.user;
-                    updateAuthUI(currentUser);
-                    await pullFromCloud();
-                } else {
-                    currentUser = null;
-                    updateAuthUI(null);
-                    loadFromLocal();
-                }
-            });
-
-            // Check existing session on load
-            supabase.auth.getSession().then(({ data: { session } }) => {
-                if (session) {
-                    currentUser = session.user;
-                    updateAuthUI(currentUser);
-                    pullFromCloud();
-                } else {
-                    loadFromLocal();
-                }
+        // ============================================
+        // Initialize
+        // ============================================
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session) {
+                currentUser = session.user;
+                updateAuthUI();
+                await pullFromCloud();
                 renderAll();
-            });
-        } else {
-            // Fallback if Supabase not loaded
-            loadFromLocal();
+            } else {
+                currentUser = null;
+                updateAuthUI();
+                loadFromLocal();
+                renderAll();
+            }
+        });
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                currentUser = session.user;
+                updateAuthUI();
+                pullFromCloud();
+            } else {
+                loadFromLocal();
+            }
             renderAll();
-            showToast('Supabase not loaded - working offline', 'error');
-        }
+        });
     </script>
 </body>
 </html>

@@ -206,23 +206,26 @@
         let supabaseClient = null;
         let authenticatedUser = null;
         let syncTimeout = null;
-
-        // Base Arrays Mapped
-        let tasks = { backlog: [], inprogress: [], done: [] };
-        let columnNames = { backlog: "📋  backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" };
-        let reminders = []; let timers = []; let events = [];
-        
-        let hardware = [
-            { id: 1, type: "Core Terminal", name: "ASUS Vivobook 16X", note: "Ryzen 7 // RTX Architecture Node" },
-            { id: 2, type: "Mobile Interface", name: "Samsung Galaxy A17", note: "CODM High Sensitivity Workspace Mapping" },
-            { id: 3, type: "Visual Pipeline", name: "LG 32\" Display", note: "Vertical Orientation Mount Array" }
-        ];
-        let matrix = [
-            { id: 1, title: "TAI Group Hub", sub: "Ahmad / Taoheed alignment matrix", url: "#" },
-            { id: 2, title: "Multi-Tenancy Core", sub: "Centralized application services", url: "#" },
-            { id: 3, title: "Web3 Sandbox", sub: "Solidity architecture nodes", url: "#" },
-            { id: 4, title: "Gaming Logs", sub: "EA FC 26 / Naruto Storm 5", url: "#" }
-        ];
+// Replace the old loose variable declarations with this:
+let workspace = {
+    tasks: { backlog: [], inprogress: [], done: [] },
+    columnNames: { backlog: "📋  backlog:", inprogress: "⚙️ inprogress:", done: "✅ done" },
+    reminders: [],
+    timers: [],
+    events: [],
+    notes: "",
+    hardware: [
+        { id: 1, type: "Core Terminal", name: "ASUS Vivobook 16X", note: "Ryzen 7 // RTX Architecture Node" },
+        { id: 2, type: "Mobile Interface", name: "Samsung Galaxy A17", note: "CODM High Sensitivity Workspace Mapping" },
+        { id: 3, type: "Visual Pipeline", name: "LG 32\" Display", note: "Vertical Orientation Mount Array" }
+    ],
+    matrix: [
+        { id: 1, title: "TAI Group Hub", sub: "Ahmad / Taoheed alignment matrix", url: "#" },
+        { id: 2, title: "Multi-Tenancy Core", sub: "Centralized application services", url: "#" },
+        { id: 3, title: "Web3 Sandbox", sub: "Solidity architecture nodes", url: "#" },
+        { id: 4, title: "Gaming Logs", sub: "EA FC 26 / Naruto Storm 5", url: "#" }
+    ]
+};
 
         let currentCalendarDate = new Date(2026, 4, 26);
         let selectedEventDate = "2026-05-26";

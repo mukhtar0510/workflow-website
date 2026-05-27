@@ -59,6 +59,17 @@
         ::-webkit-scrollbar-track { background: #02040A; }
         ::-webkit-scrollbar-thumb { background: #1A2333; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #00A3FF; }
+        .sync-indicator {
+            transition: all 0.3s ease;
+        }
+        .sync-pulse {
+            animation: syncPulse 1s ease-in-out;
+        }
+        @keyframes syncPulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
     </style>
 </head>
 <body class="text-gray-300 min-h-screen pb-6">
@@ -196,6 +207,7 @@
             <div class="flex gap-2">
                 <button onclick="resetAllWorkspace()" class="text-red-400 hover:text-red-300">Purge</button>
                 <button onclick="exportAllData()" class="text-blue-400 hover:text-blue-300">Backup</button>
+                <button onclick="manualSync()" class="text-green-400 hover:text-green-300 ml-2">⟳ Sync Now</button>
             </div>
         </div>
     </footer>
@@ -208,8 +220,8 @@
         let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let authenticatedUser = null;
         let syncTimeout = null;
-        let initialLoadDone = false;
-
+        let syncInterval = null; // For periodic polling
+        
         // --- UNIFIED WORKSPACE STATE (matches schema.sql structure) ---
         let workspace = {
             tasks: { backlog: [], inprogress: [], done: [] },
@@ -231,7 +243,7 @@
             ]
         };
 
-        // --- Helper: Map local variables from workspace for renderers (backward compatibility) ---
+        // --- Helper: Map local variables from workspace for renderers ---
         let tasks = workspace.tasks;
         let columnNames = workspace.columnNames;
         let reminders = workspace.reminders;
@@ -277,10 +289,19 @@
                 .update({ data: workspace, updated_at: new Date().toISOString() })
                 .eq('user_id', authenticatedUser.id);
             if (error) console.error("Cloud push error:", error);
+            else {
+                // Show sync indicator
+                const icon = document.getElementById('syncStatusIcon');
+                if (icon) {
+                    icon.classList.add('sync-pulse');
+                    setTimeout(() => icon.classList.remove('sync-pulse'), 1000);
+                }
+            }
         }
 
         async function pullCloudWorkspace() {
             if (!supabaseClient || !authenticatedUser) return;
+            console.log("Pulling workspace from cloud...");
             const { data, error } = await supabaseClient
                 .from('user_workspaces')
                 .select('data')
@@ -291,6 +312,7 @@
                 return;
             }
             if (data && data.data) {
+                const oldNotes = workspace.notes;
                 workspace = data.data;
                 // Ensure hardware/matrix fallback if missing in old schema
                 if (!workspace.hardware) workspace.hardware = [...hardware];
@@ -303,15 +325,32 @@
                 syncLocalRefs();
                 if (document.getElementById('globalNotes')) document.getElementById('globalNotes').value = workspace.notes || "";
                 fullRender(false);
+                console.log("Workspace pulled successfully");
             } else {
                 // First time user: create record with defaults
                 await ensureUserWorkspaceRecord();
             }
         }
 
+        // Manual sync function for the button
+        async function manualSync() {
+            if (!authenticatedUser) {
+                alert("Not connected to cloud. Please sign in first.");
+                return;
+            }
+            console.log("Manual sync triggered");
+            await pushCloudWorkspace();
+            await pullCloudWorkspace();
+            const icon = document.getElementById('syncStatusIcon');
+            if (icon) {
+                icon.classList.add('sync-pulse');
+                setTimeout(() => icon.classList.remove('sync-pulse'), 1000);
+            }
+        }
+
         function debouncedSync() {
             workspace.notes = document.getElementById('globalNotes') ? document.getElementById('globalNotes').value : "";
-            syncLocalRefs(); // capture latest state from renderers
+            syncLocalRefs();
             saveLocalCache();
             if (!authenticatedUser) return;
             clearTimeout(syncTimeout);
@@ -376,33 +415,40 @@
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
             if(!email || !password) return alert("Provide credentials.");
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if(error) alert("Connection Refused: " + error.message);
+            else {
+                console.log("Signed in successfully:", data.user.email);
+            }
         }
 
         async function handleCloudSignOut() {
+            console.log("Signing out...");
+            // Stop any running sync intervals
+            if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+            }
             await supabaseClient.auth.signOut();
             authenticatedUser = null;
             updateCloudUI(false, null);
-            loadLocalCache(); // revert to local state
+            // Reload from local cache after disconnect
+            loadLocalCache();
             fullRender(true);
+            console.log("Signed out successfully");
         }
 
-        supabaseClient.auth.onAuthStateChange(async (event, session) => {
-            if (session) {
-                authenticatedUser = session.user;
-                updateCloudUI(true, session.user.email);
-                await pullCloudWorkspace();
-                fullRender(true);
-            } else {
-                authenticatedUser = null;
-                updateCloudUI(false, null);
-                loadLocalCache();
-                fullRender(true);
-            }
-        });
+        // Periodic sync every 10 seconds when logged in
+        function startPeriodicSync() {
+            if (syncInterval) clearInterval(syncInterval);
+            syncInterval = setInterval(() => {
+                if (authenticatedUser) {
+                    pullCloudWorkspace();
+                }
+            }, 10000); // Pull every 10 seconds
+        }
 
-        // --- RENDER ENGINE (all UI components read from workspace) ---
+        // --- RENDER ENGINE ---
         function fullRender(shouldSyncCloud = true) {
             syncLocalRefs();
             renderCalendar(); renderReminders(); renderTimers();
@@ -486,7 +532,7 @@
         function addMergedTask() { const title = document.getElementById('quickTaskTitle').value.trim(); const stage = document.getElementById('quickTaskStage').value; const time = document.getElementById('quickTaskTime').value; const meta = document.getElementById('quickTaskMeta').value.trim(); if(title) { tasks[stage].push({ title, time: time || "12:00", meta, fileContent: "", completed: (stage === 'done') }); document.getElementById('quickTaskTitle').value = ''; document.getElementById('quickTaskMeta').value = ''; fullRender(); } }
         function updateTaskStats() { let total = 0, checkedCompleted = 0; ['backlog', 'inprogress', 'done'].forEach(key => { if(tasks[key]) { total += tasks[key].length; tasks[key].forEach(t => { if(t.completed) checkedCompleted++; }); } }); const badge = document.getElementById('taskStatsBadge'); if(badge) badge.innerText = `${checkedCompleted}/${total} Completed`; }
 
-        // --- Reminders, Timers, Calendar, Hardware, Matrix (simplified reuses existing logic) ---
+        // --- Reminders, Timers, Calendar, Hardware, Matrix ---
         function renderReminders() { const container = document.getElementById('reminderList'); if(!container) return; if(reminders.length===0) { container.innerHTML='<div class="text-[9px] text-gray-600 text-center py-2 font-mono">// No logged exceptions found</div>'; return; } container.innerHTML=''; reminders.forEach((rem,idx)=>{ const div=document.createElement('div'); div.className='flex justify-between items-center text-[10px] bg-black/40 p-1 rounded-md border border-gray-900'; div.innerHTML=`<div><span class="font-medium text-gray-300 block truncate w-40">${escapeHtml(rem.text)}</span><span class="text-[9px] font-mono text-purple-400">${new Date(rem.datetime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><button onclick="deleteReminder(${idx})" class="text-gray-600 hover:text-red-400"><i data-lucide="x" class="w-3 h-3"></i></button>`; container.appendChild(div); }); }
         function quickAddReminder() { let text = prompt("Enter explicit alert context blueprint:", "Structural Alignment Check"); if(!text) return; let dateStr = prompt("Provide Timestamp coordinates (YYYY-MM-DD HH:MM)", "2026-05-26 14:00"); if(dateStr) { let iso = dateStr.replace(" ", "T"); if(!isNaN(Date.parse(iso))) { reminders.push({ id: Date.now(), text: text, datetime: iso }); fullRender(); } else alert("Format parse mismatch constraints."); } }
         function deleteReminder(idx) { reminders.splice(idx,1); fullRender(); }
@@ -498,7 +544,6 @@
         function deleteTimerById(id) { stopTimerById(id); timers=timers.filter(t=>t.id!==id); renderTimers(); }
         function createMergedTimer() { const input=document.getElementById('newTimerNameInput'); let name=input.value.trim(); if(!name) name="Dev Session"; timers.push({ id:Date.now(), name:name, seconds:0, isRunning:false, intervalId:null }); input.value=''; renderTimers(); }
 
-        // Calendar, hardware, matrix simplified (identical to previous working version)
         let currentCalendarDate = new Date(2026,4,26); let selectedEventDate="2026-05-26";
         function renderCalendar() { const year=currentCalendarDate.getFullYear(), month=currentCalendarDate.getMonth(); const firstDay=new Date(year,month,1).getDay(), daysInMonth=new Date(year,month+1,0).getDate(); const adjustedFirst=firstDay===0?6:firstDay-1; const container=document.getElementById('calendarGrid'); if(!container) return; const monthsLabels=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]; document.getElementById('monthYearDisplay').innerText=`${monthsLabels[month]} ${year}`; let gridHtml='<div class="text-gray-600 font-bold">M</div><div class="text-gray-600 font-bold">T</div><div class="text-gray-600 font-bold">W</div><div class="text-gray-600 font-bold">T</div><div class="text-gray-600 font-bold">F</div><div class="text-gray-600 font-bold">S</div><div class="text-gray-600 font-bold">S</div>'; for(let i=0;i<adjustedFirst;i++) gridHtml+=`<div class="p-0.5 text-gray-800 opacity-20">-</div>`; for(let d=1;d<=daysInMonth;d++){ const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const hasEvent=events.some(e=>e.date===dateStr); let cls="p-0.5 rounded text-[9px] hover:bg-blue-500/20 cursor-pointer transition"; if(hasEvent) cls+=" bg-blue-950 text-blue-400 font-bold border border-blue-900/50"; gridHtml+=`<div class="${cls}" onclick="selectEventDate('${dateStr}')">${d}</div>`; } container.innerHTML=gridHtml; const eventsContainer=document.getElementById('eventsList'); if(!eventsContainer) return; const monthEvents=events.filter(e=>new Date(e.date).getMonth()===month&&new Date(e.date).getFullYear()===year); if(monthEvents.length===0) eventsContainer.innerHTML='<div class="text-[9px] text-gray-600 text-center font-mono py-1">// No anomalies cataloged</div>'; else eventsContainer.innerHTML=monthEvents.map(ev=>`<div class="flex justify-between items-center bg-black/40 px-1.5 py-0.5 rounded border border-gray-900"><span class="text-[10px] text-gray-300 truncate w-44">${ev.title} <b class="text-blue-500 font-mono text-[8px]">(${ev.date.substring(5)})</b></span><button onclick="deleteEventById(${ev.id})" class="text-gray-600 hover:text-red-400"><i data-lucide="x" class="w-2.5 h-2.5"></i></button></div>`).join(''); }
         function selectEventDate(date) { selectedEventDate=date; document.getElementById('newEventTitle').placeholder=`Log to: ${date}`; }
@@ -516,11 +561,42 @@
         function exportAllData() { const dataDump=JSON.stringify(workspace,null,2); const blob=new Blob([dataDump],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='idev_architect_backup.json'; a.click(); }
         function escapeHtml(str) { return String(str).replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 
+        // --- AUTH OBSERVER (FIXED) ---
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            console.log("Auth state change:", event, session ? session.user.email : "no session");
+            if (session) {
+                authenticatedUser = session.user;
+                updateCloudUI(true, session.user.email);
+                await pullCloudWorkspace();
+                startPeriodicSync();
+                fullRender(true);
+            } else {
+                authenticatedUser = null;
+                updateCloudUI(false, null);
+                if (syncInterval) {
+                    clearInterval(syncInterval);
+                    syncInterval = null;
+                }
+                loadLocalCache();
+                fullRender(true);
+            }
+        });
+
         // Initialize
         loadLocalCache();
         syncLocalRefs();
         if(document.getElementById('globalNotes')) document.getElementById('globalNotes').value = workspace.notes || "";
         fullRender(false);
+        
+        // Check for existing session on load
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                authenticatedUser = session.user;
+                updateCloudUI(true, session.user.email);
+                pullCloudWorkspace();
+                startPeriodicSync();
+            }
+        });
     </script>
 </body>
 </html>
